@@ -15,6 +15,24 @@
                     <x-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                         {{ __('Dashboard') }}
                     </x-nav-link>
+                    <x-nav-link :href="route('requerentes.index')" :active="request()->routeIs('requerentes.*')">
+                        Requerentes
+                    </x-nav-link>
+                    <x-nav-link :href="route('gabinetes.index')" :active="request()->routeIs('gabinetes.*')">
+                        Gabinetes
+                    </x-nav-link>
+                    <x-nav-link :href="route('subcontratados.index')" :active="request()->routeIs('subcontratados.*')">
+                        Subcontratados
+                    </x-nav-link>
+                    <x-nav-link :href="route('tipo-imoveis.index')" :active="request()->routeIs('tipo-imoveis.*')">
+                        Tipos de imóvel
+                    </x-nav-link>
+                    <x-nav-link :href="route('servicos.index')" :active="request()->routeIs('servicos.*')">
+                        Serviços
+                    </x-nav-link>
+                    <x-nav-link :href="route('orcamentos.index')" :active="request()->routeIs('orcamentos.*')">
+                        Orçamentos
+                    </x-nav-link>
                 </div>
             </div>
 
@@ -69,6 +87,24 @@
         <div class="pt-2 pb-3 space-y-1">
             <x-responsive-nav-link :href="route('dashboard')" :active="request()->routeIs('dashboard')">
                 {{ __('Dashboard') }}
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('requerentes.index')" :active="request()->routeIs('requerentes.*')">
+                Requerentes
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('gabinetes.index')" :active="request()->routeIs('gabinetes.*')">
+                Gabinetes
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('subcontratados.index')" :active="request()->routeIs('subcontratados.*')">
+                Subcontratados
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('tipo-imoveis.index')" :active="request()->routeIs('tipo-imoveis.*')">
+                Tipos de imóvel
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('servicos.index')" :active="request()->routeIs('servicos.*')">
+                Serviços
+            </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('orcamentos.index')" :active="request()->routeIs('orcamentos.*')">
+                Orçamentos
             </x-responsive-nav-link>
         </div>
 

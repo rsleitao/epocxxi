@@ -18,7 +18,7 @@ No terminal, dentro da pasta do projeto (`epocxxi`), corre os comandos abaixo.
 ```bash
 cd c:\Users\renato\Desktop\Ajuda\code\XAMP\htdocs\epocxxi
 
-git remote add origin https://github.com/TEU_UTILIZADOR/epocxxi.git
+git remote add origin https://github.com/rsleitao/epocxxi.git
 git push -u origin main
 ```
 
