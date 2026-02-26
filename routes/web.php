@@ -1,12 +1,14 @@
 <?php
 
 use App\Http\Controllers\Api\GeoController;
+use App\Http\Controllers\DocumentoTipoController;
 use App\Http\Controllers\GabineteController;
 use App\Http\Controllers\OrcamentoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RequerenteController;
 use App\Http\Controllers\ServicoController;
 use App\Http\Controllers\SubcontratadoController;
+use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\TipoImovelController;
 use Illuminate\Support\Facades\Route;
 
@@ -31,6 +33,11 @@ Route::middleware('auth')->group(function () {
     Route::resource('tipo-imoveis', TipoImovelController::class)->parameters(['tipo-imoveis' => 'tipoImovel']);
     Route::resource('servicos', ServicoController::class);
     Route::resource('orcamentos', OrcamentoController::class);
+    Route::get('orcamentos/{orcamento}/report', [OrcamentoController::class, 'report'])->name('orcamentos.report');
+    Route::get('orcamentos/{orcamento}/gerar-documento/{template}', [TemplateController::class, 'gerarOrcamento'])->name('orcamentos.gerar-documento');
+
+    Route::resource('documento-tipos', DocumentoTipoController::class)->parameters(['documento-tipos' => 'documentoTipo']);
+    Route::resource('templates', TemplateController::class);
 
     Route::get('api/distritos/{distrito}/concelhos', [GeoController::class, 'concelhos'])->name('api.distritos.concelhos');
     Route::get('api/concelhos/{concelho}/freguesias', [GeoController::class, 'freguesias'])->name('api.concelhos.freguesias');

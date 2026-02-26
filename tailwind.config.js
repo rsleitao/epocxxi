@@ -14,6 +14,14 @@ export default {
             fontFamily: {
                 sans: ['Figtree', ...defaultTheme.fontFamily.sans],
             },
+            colors: {
+                epoc: {
+                    primary: '#2D647A',
+                    'primary-hover': '#255a6d',
+                    light: '#8FB5CB',
+                    lighter: '#AECAD9',
+                },
+            },
         },
     },
 

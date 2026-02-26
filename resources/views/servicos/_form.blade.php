@@ -15,7 +15,7 @@
     </div>
     <div>
         <x-input-label for="descricao" value="Descrição" />
-        <textarea id="descricao" name="descricao" rows="3" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">{{ old('descricao', $servico?->descricao) }}</textarea>
+        <textarea id="descricao" name="descricao" rows="3" class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm">{{ old('descricao', $servico?->descricao) }}</textarea>
         <x-input-error :messages="$errors->get('descricao')" class="mt-1" />
     </div>
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -41,7 +41,7 @@
     <div class="flex items-center gap-2">
         <input type="hidden" name="ativo" value="0">
         <input id="ativo" name="ativo" type="checkbox" value="1" {{ old('ativo', $servico?->ativo ?? true) ? 'checked' : '' }}
-               class="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500">
+               class="rounded border-gray-300 text-epoc-primary focus:ring-epoc-primary">
         <x-input-label for="ativo" value="Ativo" class="!mb-0" />
         <x-input-error :messages="$errors->get('ativo')" class="mt-1" />
     </div>

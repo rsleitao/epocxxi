@@ -123,4 +123,15 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Tipos de documento: CRUD na interface
+    |--------------------------------------------------------------------------
+    | Enquanto true, o utilizador pode criar, editar e eliminar tipos em
+    | Gestão → Tipos de documento. Quando estabilizarem os tipos, defina
+    | DOCUMENT_TYPE_CRUD_ENABLED=false no .env para deixar só consulta
+    | (listar tipos e ver placeholders/templates).
+    */
+    'document_type_crud_enabled' => env('DOCUMENT_TYPE_CRUD_ENABLED', true),
+
 ];

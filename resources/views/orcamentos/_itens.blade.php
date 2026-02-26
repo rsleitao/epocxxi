@@ -134,7 +134,7 @@
         <h3 class="text-sm font-medium text-gray-700">Linhas do orçamento</h3>
         <p class="text-xs text-gray-500">Escolha um serviço para preencher automaticamente ou deixe "Serviço ocasional". IVA % em branco usa o valor do orçamento ({{ number_format($percentagemIva, 0) }}%).</p>
         <button type="button" @click="itens.push(novaLinha())"
-                class="text-sm text-indigo-600 hover:text-indigo-800 font-medium">
+                class="text-sm text-epoc-primary hover:text-epoc-primary-hover font-medium">
             + Adicionar linha
         </button>
     </div>
@@ -142,20 +142,18 @@
         <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md table-fixed">
             <colgroup>
                 <col class="w-40">
-                <col>
                 <col class="w-28">
                 <col class="w-28">
                 <col class="w-24">
+                <col class="w-32">
                 <col class="w-24">
-                <col class="w-20">
                 <col class="w-24">
                 <col class="w-28">
-                <col class="w-16">
+                <col class="w-8">
             </colgroup>
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Serviço</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fase</th>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Prazo</th>
                     <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Quantidade</th>
@@ -163,59 +161,55 @@
                     <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">IVA %</th>
                     <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Valor IVA</th>
                     <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Total</th>
-                    <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase w-16"></th>
+                    <th class="px-3 py-2 text-center text-xs font-medium text-gray-500 uppercase w-8"></th>
                 </tr>
             </thead>
             <tbody class="bg-white divide-y divide-gray-200" x-cloak>
                 <template x-for="(item, index) in itens" :key="index">
                     <tr>
                         <td class="px-3 py-2">
+                            <input type="hidden" :name="'itens[' + index + '][descricao]'" x-model="item.descricao">
                             <select :name="'itens[' + index + '][id_servico]'" x-model="item.id_servico"
                                     @change="escolherServico(item, item.id_servico)"
-                                    class="block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
+                                    class="block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm text-sm">
                                 <option value="">— Serviço ocasional —</option>
                                 @foreach ($servicos as $s)
                                     <option value="{{ $s->id }}">{{ $s->nome }} @if($s->unidade)({{ $s->unidade }})@endif</option>
                                 @endforeach
                             </select>
                         </td>
-                        <td class="px-3 py-2">
-                            <input type="text" :name="'itens[' + index + '][descricao]'" x-model="item.descricao"
-                                   class="block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm"
-                                   placeholder="Descrição (ou preenchido pelo serviço)">
-                        </td>
                         <td class="px-3 py-2 text-sm text-gray-600 align-middle" x-text="(servicos.find(s => s.id == item.id_servico) || {}).tipo_trabalho || '—'"></td>
                         <td class="px-3 py-2">
                             <input type="date" :name="'itens[' + index + '][prazo_data]'" x-model="item.prazo_data"
-                                   class="block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm">
+                                   class="block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm text-sm">
                         </td>
                         <td class="px-3 py-2">
                             <input type="number" step="0.01" min="0" :name="'itens[' + index + '][quantidade]'" x-model="item.quantidade"
-                                   class="block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm text-right">
+                                   class="block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm text-sm text-right">
                         </td>
                         <td class="px-3 py-2">
                             <input type="number" step="0.01" min="0" :name="'itens[' + index + '][preco_base]'" x-model="item.preco_base"
-                                   class="block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm text-right">
+                                   class="block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm text-sm text-right">
                         </td>
                         <td class="px-3 py-2">
                             <input type="number" step="0.01" min="0" max="100" :name="'itens[' + index + '][percentagem_iva]'" x-model="item.percentagem_iva"
-                                   class="block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm text-sm text-right" placeholder="{{ number_format($percentagemIva, 0) }}">
+                                   class="block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm text-sm text-right" placeholder="{{ number_format($percentagemIva, 0) }}">
                         </td>
                         <td class="px-3 py-2 text-sm text-right text-gray-900 align-middle" x-text="fmt(valorIvaLinha(item)) + ' €'"></td>
                         <td class="px-3 py-2 text-sm text-right font-medium text-gray-900 align-middle" x-text="fmt(totalLinha(item)) + ' €'"></td>
-                        <td class="px-3 py-2 text-right">
-                            <button type="button" @click="itens.splice(index, 1)" class="text-red-600 hover:text-red-800 text-sm">Remover</button>
+                        <td class="px-1 py-2 text-center">
+                            <button type="button" @click="itens.splice(index, 1)" class="text-red-600 hover:text-red-800 text-2xl font-bold leading-none align-middle" title="Remover linha">×</button>
                         </td>
                     </tr>
                 </template>
             </tbody>
             <tfoot class="bg-gray-50 border-t-2 border-gray-200 font-medium text-sm">
                 <tr>
-                    <td class="px-3 py-3" colspan="5"></td>
+                    <td class="px-3 py-3" colspan="4"></td>
                     <td class="px-3 py-3 text-right text-gray-900" x-text="fmt(subtotal) + ' €'"></td>
                     <td class="px-3 py-3 text-right">
                         <input type="number" name="percentagem_iva" x-model.number="percentagem_iva" step="0.01" min="0" max="100"
-                               class="w-16 border-0 bg-transparent p-0 text-right text-gray-700 focus:ring-0" title="IVA % (geral)">
+                               class="w-full max-w-[4rem] border-0 bg-transparent p-0 text-right text-gray-700 focus:ring-0" title="IVA % (geral)">
                     </td>
                     <td class="px-3 py-3 text-right text-gray-900" x-text="fmt(valorIva) + ' €'"></td>
                     <td class="px-3 py-3 text-right text-gray-900" x-text="fmt(total) + ' €'"></td>

@@ -11,10 +11,27 @@ class Orcamento extends Model
     protected $table = 'orcamentos';
 
     protected $fillable = [
-        'status', 'id_requerente', 'id_requerente_fatura', 'id_imovel', 'id_gabinete',
+        'status', 'numero', 'id_requerente', 'id_requerente_fatura', 'id_imovel', 'id_gabinete',
         'designacao', 'percentagem_iva', 'id_processo', 'data_convertido', 'data_faturado',
         'user_id', 'id_subcontratado',
     ];
+
+    /**
+     * Gera o próximo número de orçamento para o ano (formato YYNNNN, ex.: 250001).
+     * Sequencial reinicia em 1 cada ano novo. Deve ser chamado dentro de uma transação.
+     */
+    public static function proximoNumeroParaAno(string $ano2digitos): string
+    {
+        $ultimo = static::where('numero', 'like', $ano2digitos . '%')
+            ->whereRaw('LENGTH(numero) = 6')
+            ->orderByDesc('numero')
+            ->lockForUpdate()
+            ->first();
+
+        $seq = $ultimo ? (int) substr($ultimo->numero, 2) + 1 : 1;
+
+        return $ano2digitos . str_pad((string) $seq, 4, '0', STR_PAD_LEFT);
+    }
 
     protected $casts = [
         'percentagem_iva' => 'decimal:2',

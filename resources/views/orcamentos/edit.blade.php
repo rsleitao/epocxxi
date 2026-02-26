@@ -8,17 +8,38 @@
                 <a href="{{ route('orcamentos.index') }}" class="text-gray-500 hover:text-gray-700">Orçamentos</a>
                 <span class="text-gray-400">/</span>
                 <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                    {{ $readonly ? 'Ver orçamento' : 'Editar orçamento' }} #{{ $orcamento->id }}
+                    {{ $readonly ? 'Ver orçamento' : 'Editar orçamento' }} {{ $orcamento->numero ? 'nº ' . $orcamento->numero : '#' . $orcamento->id }}
                 </h2>
                 @if ($readonly)
                     <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-emerald-100 text-emerald-800">Faturado — apenas consulta</span>
                 @endif
             </div>
-            @if ($orcamento->historico->isNotEmpty())
-                <a href="#historico" class="text-sm text-indigo-600 hover:text-indigo-800">
-                    Ver histórico
-                </a>
-            @endif
+            <div class="flex items-center gap-3 flex-wrap" x-data="{ imprimirOpen: false }">
+                <div class="relative">
+                    <button type="button" @click="imprimirOpen = !imprimirOpen"
+                            class="inline-flex items-center px-4 py-2 bg-epoc-primary border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-epoc-primary-hover focus:bg-epoc-primary-hover active:bg-epoc-primary-hover focus:outline-none focus:ring-2 focus:ring-epoc-primary focus:ring-offset-2 transition ease-in-out duration-150">
+                        Imprimir
+                        <svg class="ml-1 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/></svg>
+                    </button>
+                    <div x-show="imprimirOpen" x-cloak @click.away="imprimirOpen = false"
+                         class="absolute right-0 top-full mt-1 z-10 py-1 bg-white border border-gray-200 rounded-md shadow-lg min-w-[220px]">
+                        <a href="{{ route('orcamentos.report', $orcamento) }}" target="_blank"
+                           class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                            Ver relatório (HTML)
+                        </a>
+                        @if (isset($templatesOrcamento) && $templatesOrcamento->isNotEmpty())
+                            <div class="border-t border-gray-100 mt-1 pt-1">
+                                @foreach ($templatesOrcamento as $tpl)
+                                    <a href="{{ route('orcamentos.gerar-documento', [$orcamento, $tpl]) }}"
+                                       class="block px-3 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                                        {{ $tpl->nome }} (Word){{ $tpl->is_predefinido ? ' — predefinido' : '' }}
+                                    </a>
+                                @endforeach
+                            </div>
+                        @endif
+                    </div>
+                </div>
+            </div>
         </div>
     </x-slot>
 
@@ -30,7 +51,7 @@
                         @include('orcamentos._form', ['orcamento' => $orcamento, 'readonly' => true])
                         @include('orcamentos._itens', ['orcamento' => $orcamento, 'readonly' => true])
                         <div class="flex gap-3 mt-6 pt-6 border-t border-gray-200">
-                            <a href="{{ route('orcamentos.index') }}" class="inline-flex items-center px-4 py-2 bg-gray-800 text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-gray-700">
+                            <a href="{{ route('orcamentos.index') }}" class="inline-flex items-center px-4 py-2 bg-epoc-primary text-white rounded-md font-semibold text-xs uppercase tracking-widest hover:bg-epoc-primary-hover">
                                 Voltar à lista
                             </a>
                         </div>

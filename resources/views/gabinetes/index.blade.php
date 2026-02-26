@@ -5,7 +5,7 @@
                 Gabinetes
             </h2>
             <a href="{{ route('gabinetes.create') }}"
-               class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
+               class="inline-flex items-center px-4 py-2 bg-epoc-primary border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-epoc-primary-hover">
                 Novo gabinete
             </a>
         </div>
@@ -18,7 +18,7 @@
                     <form method="get" action="{{ route('gabinetes.index') }}" class="flex gap-2 flex-wrap">
                         <input type="search" name="q" value="{{ request('q') }}"
                                placeholder="Nome, NIF ou email..."
-                               class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 w-64">
+                               class="rounded-md border-gray-300 shadow-sm focus:border-epoc-primary focus:ring-epoc-primary w-64">
                         <button type="submit" class="px-4 py-2 bg-gray-200 rounded-md text-sm font-medium hover:bg-gray-300">
                             Pesquisar
                         </button>
@@ -50,7 +50,7 @@
                                     <td class="px-4 py-3 text-sm text-gray-500">{{ $gabinete->email ?? '—' }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-500">{{ $gabinete->telefone ?? '—' }}</td>
                                     <td class="px-4 py-3 text-sm text-right space-x-2">
-                                        <a href="{{ route('gabinetes.edit', $gabinete) }}" class="text-indigo-600 hover:text-indigo-900">Editar</a>
+                                        <a href="{{ route('gabinetes.edit', $gabinete) }}" class="text-epoc-primary hover:text-epoc-primary-hover">Editar</a>
                                         <form action="{{ route('gabinetes.destroy', $gabinete) }}" method="post" class="inline" onsubmit="return confirm('Eliminar este gabinete?');">
                                             @csrf
                                             @method('DELETE')

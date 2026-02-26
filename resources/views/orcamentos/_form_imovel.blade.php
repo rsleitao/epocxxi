@@ -19,11 +19,11 @@
     @if (!$readonly)
     <div class="flex items-center gap-4 mb-4">
         <label class="inline-flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="imovel_modo" value="existente" x-model="modo" class="text-indigo-600 focus:ring-indigo-500">
+            <input type="radio" name="imovel_modo" value="existente" x-model="modo" class="text-epoc-primary focus:ring-epoc-primary">
             <span class="text-sm font-medium text-gray-700">Selecionar imóvel existente</span>
         </label>
         <label class="inline-flex items-center gap-2 cursor-pointer">
-            <input type="radio" name="imovel_modo" value="novo" x-model="modo" class="text-indigo-600 focus:ring-indigo-500">
+            <input type="radio" name="imovel_modo" value="novo" x-model="modo" class="text-epoc-primary focus:ring-epoc-primary">
             <span class="text-sm font-medium text-gray-700">Criar novo imóvel</span>
         </label>
     </div>
@@ -33,7 +33,7 @@
     @if (!$readonly)
     <div x-show="modo === 'existente'" x-cloak class="mb-4">
         <x-input-label for="id_imovel" value="Imóvel" />
-        <select id="id_imovel" name="id_imovel" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+        <select id="id_imovel" name="id_imovel" class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm"
                 x-model="id_imovel_selecionado" :disabled="modo !== 'existente'">
             <option value="">— Selecionar —</option>
             @foreach ($imoveis as $i)
@@ -124,7 +124,7 @@
             </div>
             <div>
                 <x-input-label for="novo_imovel_id_tipo_imovel" value="Tipo de imóvel" />
-                <select id="novo_imovel_id_tipo_imovel" name="novo_imovel[id_tipo_imovel]" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+                <select id="novo_imovel_id_tipo_imovel" name="novo_imovel[id_tipo_imovel]" class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm">
                     <option value="">— Selecionar —</option>
                     @foreach ($tipo_imoveis as $t)
                         <option value="{{ $t->id }}" {{ old('novo_imovel.id_tipo_imovel') == $t->id ? 'selected' : '' }}>{{ $t->tipo_imovel }}</option>
@@ -136,7 +136,7 @@
         <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
                 <x-input-label for="novo_imovel_id_distrito" value="Distrito" />
-                <select id="novo_imovel_id_distrito" name="novo_imovel[id_distrito]" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                <select id="novo_imovel_id_distrito" name="novo_imovel[id_distrito]" class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm"
                         x-model="id_distrito" @change="carregarConcelhos()">
                     <option value="">— Selecionar —</option>
                     @foreach ($distritos as $d)
@@ -147,7 +147,7 @@
             </div>
             <div>
                 <x-input-label for="novo_imovel_id_concelho" value="Concelho" />
-                <select id="novo_imovel_id_concelho" name="novo_imovel[id_concelho]" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                <select id="novo_imovel_id_concelho" name="novo_imovel[id_concelho]" class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm"
                         x-model="id_concelho" @change="carregarFreguesias()">
                     <option value="">— Selecionar —</option>
                     <template x-for="c in concelhos" :key="c.id_concelho">
@@ -158,7 +158,7 @@
             </div>
             <div>
                 <x-input-label for="novo_imovel_id_freguesia" value="Freguesia" />
-                <select id="novo_imovel_id_freguesia" name="novo_imovel[id_freguesia]" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                <select id="novo_imovel_id_freguesia" name="novo_imovel[id_freguesia]" class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm"
                         x-model="id_freguesia">
                     <option value="">— Selecionar —</option>
                     <template x-for="f in freguesias" :key="f.id_freguesia">

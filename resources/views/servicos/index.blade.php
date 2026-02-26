@@ -5,7 +5,7 @@
                 Serviços
             </h2>
             <a href="{{ route('servicos.create') }}"
-               class="inline-flex items-center px-4 py-2 bg-gray-800 border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-gray-700">
+               class="inline-flex items-center px-4 py-2 bg-epoc-primary border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-epoc-primary-hover">
                 Novo serviço
             </a>
         </div>
@@ -18,7 +18,7 @@
                     <form method="get" action="{{ route('servicos.index') }}" class="flex gap-2 flex-wrap">
                         <input type="search" name="q" value="{{ request('q') }}"
                                placeholder="Código ou nome..."
-                               class="rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 w-64">
+                               class="rounded-md border-gray-300 shadow-sm focus:border-epoc-primary focus:ring-epoc-primary w-64">
                         <button type="submit" class="px-4 py-2 bg-gray-200 rounded-md text-sm font-medium hover:bg-gray-300">
                             Pesquisar
                         </button>
@@ -58,7 +58,7 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 text-sm text-right space-x-2">
-                                        <a href="{{ route('servicos.edit', $servico) }}" class="text-indigo-600 hover:text-indigo-900">Editar</a>
+                                        <a href="{{ route('servicos.edit', $servico) }}" class="text-epoc-primary hover:text-epoc-primary-hover">Editar</a>
                                         <form action="{{ route('servicos.destroy', $servico) }}" method="post" class="inline" onsubmit="return confirm('Eliminar este serviço?');">
                                             @csrf
                                             @method('DELETE')

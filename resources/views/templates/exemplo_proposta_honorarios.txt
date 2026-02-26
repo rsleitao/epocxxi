@@ -1,0 +1,1 @@
+Proposta de honorários para elaboração dos projetos de especialidades de ${servicos_especialidades}, destinado a um ${imovel_tipo} - ${designacao}, sita na ${imovel_morada_completa}, cujo requerente é ${requerente_nome}.

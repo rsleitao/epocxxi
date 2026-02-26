@@ -71,7 +71,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
             <x-input-label for="status" value="Estado *" />
-            <select id="status" name="status" required class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+            <select id="status" name="status" required class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm">
                 <option value="rascunho" {{ old('status', $orcamento?->status) === 'rascunho' ? 'selected' : '' }}>Rascunho</option>
                 <option value="enviado" {{ old('status', $orcamento?->status) === 'enviado' ? 'selected' : '' }}>Enviado</option>
                 <option value="aceite" {{ old('status', $orcamento?->status) === 'aceite' ? 'selected' : '' }}>Aceite</option>
@@ -84,7 +84,7 @@
         <div>
             <x-input-label for="designacao" value="Designação (preenchida pelo requerente e gabinete)" />
             <input type="text" id="designacao" name="designacao" x-model="designacao"
-                   class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+                   class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm"
                    placeholder="Preenchido ao escolher requerente e gabinete">
             <x-input-error :messages="$errors->get('designacao')" class="mt-1" />
         </div>
@@ -93,7 +93,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <div>
             <x-input-label for="id_requerente" value="Requerente" />
-            <select id="id_requerente" name="id_requerente" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+            <select id="id_requerente" name="id_requerente" class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm"
                     @change="actualizarDesignacao()">
                 <option value="">— Selecionar —</option>
                 @foreach ($requerentes as $r)
@@ -104,7 +104,7 @@
         </div>
         <div>
             <x-input-label for="id_requerente_fatura" value="Faturar a" />
-            <select id="id_requerente_fatura" name="id_requerente_fatura" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+            <select id="id_requerente_fatura" name="id_requerente_fatura" class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm">
                 <option value="">— Selecionar —</option>
                 @foreach ($requerentes as $r)
                     <option value="{{ $r->id }}" {{ old('id_requerente_fatura', $orcamento?->id_requerente_fatura) == $r->id ? 'selected' : '' }}>{{ $r->nome }}</option>
@@ -122,7 +122,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 mt-6">
         <div>
             <x-input-label for="id_gabinete" value="Gabinete" />
-            <select id="id_gabinete" name="id_gabinete" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm"
+            <select id="id_gabinete" name="id_gabinete" class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm"
                     @change="actualizarDesignacao()">
                 <option value="">— Selecionar —</option>
                 @foreach ($gabinetes as $g)
@@ -133,7 +133,7 @@
         </div>
         <div>
             <x-input-label for="id_subcontratado" value="Subcontratado" />
-            <select id="id_subcontratado" name="id_subcontratado" class="mt-1 block w-full border-gray-300 focus:border-indigo-500 focus:ring-indigo-500 rounded-md shadow-sm">
+            <select id="id_subcontratado" name="id_subcontratado" class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm">
                 <option value="">— Nenhum —</option>
                 @foreach ($subcontratados as $s)
                     <option value="{{ $s->id }}" {{ old('id_subcontratado', $orcamento?->id_subcontratado) == $s->id ? 'selected' : '' }}>{{ $s->nome }}</option>

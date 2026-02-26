@@ -11,10 +11,13 @@ use App\Models\OrcamentoItem;
 use App\Models\Requerente;
 use App\Models\Servico;
 use App\Models\Subcontratado;
+use App\Models\Template;
 use App\Models\TipoImovel;
 use Carbon\Carbon;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Validator;
 use Illuminate\View\View;
 
 class OrcamentoController extends Controller
@@ -62,17 +65,31 @@ class OrcamentoController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'status' => 'required|string|in:rascunho,enviado,aceite,recusado,convertido,faturado',
-            'id_requerente' => 'nullable|exists:requerentes,id',
+            'id_requerente' => 'required|exists:requerentes,id',
             'id_requerente_fatura' => 'nullable|exists:requerentes,id',
             'id_imovel' => 'nullable|exists:imoveis,id',
-            'id_gabinete' => 'nullable|exists:gabinetes,id',
+            'id_gabinete' => 'required|exists:gabinetes,id',
             'id_subcontratado' => 'nullable|exists:subcontratados,id',
             'designacao' => 'nullable|string|max:500',
             'percentagem_iva' => 'nullable|numeric|min:0|max:100',
-        ]);
+        ])->after(function ($validator) use ($request) {
+            $itens = $request->input('itens', []);
+            $temLinhaValida = collect($itens)->contains(function ($i) {
+                $idServico = ! empty($i['id_servico'] ?? null);
+                $preco = (float) ($i['preco_base'] ?? 0);
 
+                return $idServico || $preco > 0;
+            });
+            if (! $temLinhaValida) {
+                $validator->errors()->add('itens', 'Deve adicionar pelo menos uma linha com um serviço selecionado ou preço base preenchido.');
+            }
+        });
+
+        $validator->validate();
+
+        $validated = $validator->validated();
         $validated['user_id'] = $request->user()->id;
         if (isset($validated['percentagem_iva'])) {
             $validated['percentagem_iva'] = (float) $validated['percentagem_iva'];
@@ -92,16 +109,22 @@ class OrcamentoController extends Controller
             $validated['data_faturado'] = Carbon::today();
         }
 
-        $orcamento = Orcamento::create($validated);
+        $orcamento = DB::transaction(function () use ($validated, $request) {
+            $orcamento = Orcamento::create($validated);
+            $orcamento->numero = Orcamento::proximoNumeroParaAno(now()->format('y'));
+            $orcamento->save();
 
-        OrcamentoHistorico::create([
-            'id_orcamento' => $orcamento->id,
-            'status_anterior' => null,
-            'status_novo' => $orcamento->status,
-            'user_id' => $request->user()->id,
-        ]);
+            OrcamentoHistorico::create([
+                'id_orcamento' => $orcamento->id,
+                'status_anterior' => null,
+                'status_novo' => $orcamento->status,
+                'user_id' => $request->user()->id,
+            ]);
 
-        $this->syncItens($orcamento, $request->input('itens', []));
+            $this->syncItens($orcamento, $request->input('itens', []));
+
+            return $orcamento;
+        });
 
         return redirect()->route('orcamentos.index')
             ->with('success', 'Orçamento criado com sucesso.');
@@ -120,6 +143,11 @@ class OrcamentoController extends Controller
             'historico' => fn ($q) => $q->with('user')->orderByDesc('created_at'),
         ]);
 
+        $templatesOrcamento = Template::whereHas('documentoTipo', fn ($q) => $q->where('slug', 'orcamento'))
+            ->with('documentoTipo')
+            ->orderBy('nome')
+            ->get();
+
         return view('orcamentos.edit', [
             'orcamento' => $orcamento,
             'requerentes' => Requerente::orderBy('nome')->get(),
@@ -129,6 +157,23 @@ class OrcamentoController extends Controller
             'distritos' => Distrito::orderBy('nome')->get(),
             'tipo_imoveis' => TipoImovel::orderBy('tipo_imovel')->get(),
             'servicos' => Servico::where('ativo', true)->orderBy('nome')->get(),
+            'templatesOrcamento' => $templatesOrcamento,
+        ]);
+    }
+
+    public function report(Orcamento $orcamento): View
+    {
+        $orcamento->load([
+            'requerente',
+            'requerenteFatura',
+            'gabinete',
+            'subcontratado',
+            'imovel.tipoImovel', 'imovel.distrito', 'imovel.concelho', 'imovel.freguesia',
+            'itens.servico',
+        ]);
+
+        return view('orcamentos.report', [
+            'orcamento' => $orcamento,
         ]);
     }
 
@@ -139,15 +184,30 @@ class OrcamentoController extends Controller
                 ->with('warning', 'Orçamento faturado não pode ser editado.');
         }
 
-        $validated = $request->validate([
+        $validator = Validator::make($request->all(), [
             'status' => 'required|string|in:rascunho,enviado,aceite,recusado,convertido,faturado',
-            'id_requerente' => 'nullable|exists:requerentes,id',
+            'id_requerente' => 'required|exists:requerentes,id',
             'id_requerente_fatura' => 'nullable|exists:requerentes,id',
             'id_imovel' => 'nullable|exists:imoveis,id',
-            'id_gabinete' => 'nullable|exists:gabinetes,id',
+            'id_gabinete' => 'required|exists:gabinetes,id',
             'id_subcontratado' => 'nullable|exists:subcontratados,id',
             'designacao' => 'nullable|string|max:500',
-        ]);
+        ])->after(function ($validator) use ($request) {
+            $itens = $request->input('itens', []);
+            $temLinhaValida = collect($itens)->contains(function ($i) {
+                $idServico = ! empty($i['id_servico'] ?? null);
+                $preco = (float) ($i['preco_base'] ?? 0);
+
+                return $idServico || $preco > 0;
+            });
+            if (! $temLinhaValida) {
+                $validator->errors()->add('itens', 'Deve adicionar pelo menos uma linha com um serviço selecionado ou preço base preenchido.');
+            }
+        });
+
+        $validator->validate();
+
+        $validated = $validator->validated();
 
         $idImovel = $this->resolveImovelId($request);
         if ($idImovel !== null) {
