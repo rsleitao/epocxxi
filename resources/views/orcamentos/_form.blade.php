@@ -78,6 +78,8 @@
 @else
 <div class="space-y-6" x-data="{
     designacao: @js($designacaoInicial),
+    statusSelecionado: @js(old('status', $orcamento?->status)),
+    temProcesso: @js((bool) $orcamento?->id_processo),
     requerentes: @js($requerentes->pluck('nome', 'id')->toArray()),
     gabinetes: @js($gabinetes->pluck('nome', 'id')->toArray()),
     actualizarDesignacao() {
@@ -91,7 +93,7 @@
     <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <div>
             <x-input-label for="status" value="Estado *" />
-            <select id="status" name="status" required class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm">
+            <select id="status" name="status" required class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm" x-model="statusSelecionado">
                 @foreach ($selectableStatuses as $status)
                     <option value="{{ $status }}" {{ old('status', $orcamento?->status) === $status ? 'selected' : '' }}>
                         {{ $statusLabels[$status] ?? $status }}
@@ -99,6 +101,17 @@
                 @endforeach
             </select>
             <x-input-error :messages="$errors->get('status')" class="mt-1" />
+            <div x-show="statusSelecionado === 'cancelado' && temProcesso" x-cloak class="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+                <p class="text-sm font-medium text-amber-900 mb-2">Este orçamento tem processo associado. Ao cancelar:</p>
+                <label class="inline-flex items-center gap-2 cursor-pointer">
+                    <input type="radio" name="apagar_processo" value="0" {{ old('apagar_processo', '0') === '0' ? 'checked' : '' }} class="text-epoc-primary focus:ring-epoc-primary">
+                    <span class="text-sm text-gray-700">Manter processo no histórico (o cancelamento fica registado)</span>
+                </label>
+                <label class="inline-flex items-center gap-2 cursor-pointer mt-2 block">
+                    <input type="radio" name="apagar_processo" value="1" {{ old('apagar_processo') === '1' ? 'checked' : '' }} class="text-epoc-primary focus:ring-epoc-primary">
+                    <span class="text-sm text-gray-700">Apagar processo (fica apenas o registo de orçamento cancelado)</span>
+                </label>
+            </div>
         </div>
         <div>
             <x-input-label for="designacao" value="Designação (preenchida pelo requerente e gabinete)" />

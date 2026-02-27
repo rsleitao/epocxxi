@@ -83,4 +83,20 @@ class Orcamento extends Model
     {
         return $this->hasMany(OrcamentoHistorico::class, 'id_orcamento')->orderByDesc('created_at');
     }
+
+    /**
+     * Total do orçamento com IVA (soma das linhas: preco_base * quantidade + IVA por linha).
+     */
+    public function getTotalComIvaAttribute(): float
+    {
+        $ivaPctOrc = (float) ($this->percentagem_iva ?? 23);
+        $total = 0.0;
+        foreach ($this->itens as $i) {
+            $valorLinha = (float) $i->preco_base * (float) ($i->quantidade ?? 1);
+            $pctIva = (float) ($i->percentagem_iva ?? $this->percentagem_iva ?? 23);
+            $total += $valorLinha + round($valorLinha * ($pctIva / 100), 2);
+        }
+
+        return round($total, 2);
+    }
 }

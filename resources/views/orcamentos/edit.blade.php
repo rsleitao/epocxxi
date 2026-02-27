@@ -1,5 +1,5 @@
 @php
-    $readonly = $orcamento->status === 'faturado';
+    $readonly = in_array($orcamento->status, ['aceite', 'em_execucao', 'por_faturar', 'faturado']);
 @endphp
 <x-app-layout>
     <x-slot name="header">
@@ -11,7 +11,7 @@
                     {{ $readonly ? 'Ver orçamento' : 'Editar orçamento' }} {{ $orcamento->numero ? 'nº ' . $orcamento->numero : '#' . $orcamento->id }}
                 </h2>
                 @if ($readonly)
-                    <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-emerald-100 text-emerald-800">Faturado — apenas consulta</span>
+                    <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800">Apenas consulta e impressão</span>
                 @endif
             </div>
             <div class="flex items-center gap-3 flex-wrap" x-data="{ imprimirOpen: false }">

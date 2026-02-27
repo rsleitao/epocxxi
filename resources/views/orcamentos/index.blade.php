@@ -111,12 +111,14 @@
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ Str::limit($orcamento->imovel?->morada, 25) ?? '—' }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ $orcamento->gabinete?->nome ?? '—' }}</td>
                                     <td class="px-4 py-3 text-sm text-right space-x-2">
-                                        <a href="{{ route('orcamentos.edit', $orcamento) }}" class="text-epoc-primary hover:text-epoc-primary-hover">Editar</a>
-                                        <form action="{{ route('orcamentos.destroy', $orcamento) }}" method="post" class="inline" onsubmit="return confirm('Eliminar este orçamento?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-900">Eliminar</button>
-                                        </form>
+                                        <a href="{{ route('orcamentos.edit', $orcamento) }}" class="text-epoc-primary hover:text-epoc-primary-hover">{{ in_array($orcamento->status, ['aceite', 'em_execucao', 'por_faturar', 'faturado']) ? 'Ver' : 'Editar' }}</a>
+                                        @if (in_array($orcamento->status, ['rascunho', 'enviado', 'recusado', 'cancelado']))
+                                            <form action="{{ route('orcamentos.destroy', $orcamento) }}" method="post" class="inline" onsubmit="return confirm('Eliminar este orçamento?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="text-red-600 hover:text-red-900">Eliminar</button>
+                                            </form>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty

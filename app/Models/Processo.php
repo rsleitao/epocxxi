@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\DB;
 
 class Processo extends Model
@@ -11,7 +12,6 @@ class Processo extends Model
     protected $table = 'processos';
 
     protected $fillable = [
-        'id_orcamento',
         'id_requerente',
         'designacao',
         'id_imovel',
@@ -60,9 +60,9 @@ class Processo extends Model
         return sprintf('%02d-%04d', $this->ano % 100, $this->numero_sequencial);
     }
 
-    public function orcamento(): BelongsTo
+    public function orcamentos(): HasMany
     {
-        return $this->belongsTo(Orcamento::class, 'id_orcamento');
+        return $this->hasMany(Orcamento::class, 'id_processo')->orderByDesc('created_at');
     }
 
     public function requerente(): BelongsTo

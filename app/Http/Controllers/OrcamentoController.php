@@ -72,6 +72,7 @@ class OrcamentoController extends Controller
             'requerentes' => Requerente::orderBy('nome')->get(),
             'gabinetes' => Gabinete::orderBy('nome')->get(),
             'imoveis' => Imovel::with(['tipoImovel', 'distrito', 'concelho', 'freguesia'])->orderBy('morada')->get(),
+            'processos' => Processo::with('imovel')->orderByDesc('ano')->orderByDesc('numero_sequencial')->get(),
             'subcontratados' => Subcontratado::orderBy('nome')->get(),
             'distritos' => Distrito::orderBy('nome')->get(),
             'tipo_imoveis' => TipoImovel::orderBy('tipo_imovel')->get(),
@@ -86,6 +87,7 @@ class OrcamentoController extends Controller
             'id_requerente' => 'required|exists:requerentes,id',
             'id_requerente_fatura' => 'nullable|exists:requerentes,id',
             'id_imovel' => 'nullable|exists:imoveis,id',
+            'id_processo' => 'nullable|exists:processos,id',
             'id_gabinete' => 'required|exists:gabinetes,id',
             'id_subcontratado' => 'nullable|exists:subcontratados,id',
             'designacao' => 'nullable|string|max:500',
@@ -113,10 +115,7 @@ class OrcamentoController extends Controller
             $validated['percentagem_iva'] = 23;
         }
 
-        $idImovel = $this->resolveImovelId($request);
-        if ($idImovel !== null) {
-            $validated['id_imovel'] = $idImovel;
-        }
+        $this->resolveImovelOuProcesso($request, $validated);
 
         if ($validated['status'] === 'em_execucao') {
             $validated['data_convertido'] = Carbon::today();
@@ -169,6 +168,7 @@ class OrcamentoController extends Controller
             'requerentes' => Requerente::orderBy('nome')->get(),
             'gabinetes' => Gabinete::orderBy('nome')->get(),
             'imoveis' => Imovel::with(['tipoImovel', 'distrito', 'concelho', 'freguesia'])->orderBy('morada')->get(),
+            'processos' => Processo::with('imovel')->orderByDesc('ano')->orderByDesc('numero_sequencial')->get(),
             'subcontratados' => Subcontratado::orderBy('nome')->get(),
             'distritos' => Distrito::orderBy('nome')->get(),
             'tipo_imoveis' => TipoImovel::orderBy('tipo_imovel')->get(),
@@ -195,9 +195,10 @@ class OrcamentoController extends Controller
 
     public function update(Request $request, Orcamento $orcamento): RedirectResponse
     {
-        if ($orcamento->status === 'faturado') {
+        $apenasConsulta = in_array($orcamento->status, ['aceite', 'em_execucao', 'por_faturar', 'faturado'], true);
+        if ($apenasConsulta) {
             return redirect()->route('orcamentos.edit', $orcamento)
-                ->with('warning', 'Orçamento faturado não pode ser editado.');
+                ->with('warning', 'Orçamento aceite ou em fase posterior não pode ser editado. Use apenas consulta ou impressão.');
         }
 
         $validator = Validator::make($request->all(), [
@@ -205,6 +206,7 @@ class OrcamentoController extends Controller
             'id_requerente' => 'required|exists:requerentes,id',
             'id_requerente_fatura' => 'nullable|exists:requerentes,id',
             'id_imovel' => 'nullable|exists:imoveis,id',
+            'id_processo' => 'nullable|exists:processos,id',
             'id_gabinete' => 'required|exists:gabinetes,id',
             'id_subcontratado' => 'nullable|exists:subcontratados,id',
             'designacao' => 'nullable|string|max:500',
@@ -235,33 +237,46 @@ class OrcamentoController extends Controller
             if (! in_array($novoEstado, $permitidos, true)) {
                 $validator->errors()->add('status', 'Transição de estado não permitida.');
             }
+            // Ao cancelar com processo associado, obrigar a escolher manter ou apagar processo
+            if ($novoEstado === 'cancelado' && $orcamento->id_processo && ! $request->has('apagar_processo')) {
+                $validator->errors()->add('apagar_processo', 'Indique se pretende manter o processo no histórico ou apagá-lo.');
+            }
         });
 
         $validator->validate();
 
         $validated = $validator->validated();
 
-        $idImovel = $this->resolveImovelId($request);
-        if ($idImovel !== null) {
-            $validated['id_imovel'] = $idImovel;
-        }
+        $this->resolveImovelOuProcesso($request, $validated);
 
         $estadoAnterior = $orcamento->status;
         $novoEstado = $validated['status'] ?? $estadoAnterior;
 
-        // Em execução: guardar data de entrada
-        if ($novoEstado === 'em_execucao' && ! $orcamento->data_convertido) {
-            $validated['data_convertido'] = Carbon::today();
+        // Em execução: criar processo se ainda não tiver e tiver imóvel; guardar data de entrada
+        if ($novoEstado === 'em_execucao') {
+            if (! $orcamento->data_convertido) {
+                $validated['data_convertido'] = Carbon::today();
+            }
+            if (! $orcamento->id_processo && ($validated['id_imovel'] ?? $orcamento->id_imovel)) {
+                $processo = Processo::create([
+                    'id_imovel' => $validated['id_imovel'] ?? $orcamento->id_imovel,
+                    'id_requerente' => $validated['id_requerente'] ?? $orcamento->id_requerente,
+                    'designacao' => $validated['designacao'] ?? $orcamento->designacao,
+                ]);
+                $validated['id_processo'] = $processo->id;
+            }
         }
         // Faturado: guardar data de faturação
         if ($novoEstado === 'faturado' && ! $orcamento->data_faturado) {
             $validated['data_faturado'] = Carbon::today();
         }
 
-        // Ao cancelar a partir de em execução, limpar processo associado
+        // Ao cancelar: escolha do utilizador — apagar processo ou manter no histórico
         if ($estadoAnterior === 'em_execucao' && $novoEstado === 'cancelado' && $orcamento->id_processo) {
-            Processo::where('id', $orcamento->id_processo)->delete();
-            $validated['id_processo'] = null;
+            if ($request->boolean('apagar_processo')) {
+                Processo::where('id', $orcamento->id_processo)->delete();
+                $validated['id_processo'] = null;
+            }
         }
 
         $statusAnterior = $estadoAnterior;
@@ -288,7 +303,10 @@ class OrcamentoController extends Controller
             return response()->json(['ok' => false, 'message' => 'Orçamento faturado não pode ser alterado.'], 422);
         }
 
-        $request->validate(['status' => 'required|string|in:rascunho,enviado,aceite,recusado,cancelado,em_execucao,por_faturar,faturado']);
+        $request->validate([
+            'status' => 'required|string|in:rascunho,enviado,aceite,recusado,cancelado,em_execucao,por_faturar,faturado',
+            'apagar_processo' => 'nullable|boolean',
+        ]);
 
         $novoStatus = $request->input('status');
         $statusAnterior = $orcamento->status;
@@ -305,17 +323,34 @@ class OrcamentoController extends Controller
             return response()->json(['ok' => false, 'message' => 'Transição de estado não permitida.'], 422);
         }
 
+        // Ao cancelar com processo: frontend deve enviar apagar_processo (true/false)
+        if ($statusAnterior === 'em_execucao' && $novoStatus === 'cancelado' && $orcamento->id_processo) {
+            if (! $request->has('apagar_processo')) {
+                return response()->json(['ok' => false, 'message' => 'Indique se pretende manter o processo no histórico ou apagá-lo.', 'require_cancel_choice' => true], 422);
+            }
+            if ($request->boolean('apagar_processo')) {
+                Processo::where('id', $orcamento->id_processo)->delete();
+                $orcamento->id_processo = null;
+            }
+        }
+
         $orcamento->status = $novoStatus;
-        if ($novoStatus === 'em_execucao' && ! $orcamento->data_convertido) {
-            $orcamento->data_convertido = Carbon::today();
+        if ($novoStatus === 'em_execucao') {
+            if (! $orcamento->data_convertido) {
+                $orcamento->data_convertido = Carbon::today();
+            }
+            // Criar processo se ainda não tiver e orçamento tiver imóvel
+            if (! $orcamento->id_processo && $orcamento->id_imovel) {
+                $processo = Processo::create([
+                    'id_imovel' => $orcamento->id_imovel,
+                    'id_requerente' => $orcamento->id_requerente,
+                    'designacao' => $orcamento->designacao,
+                ]);
+                $orcamento->id_processo = $processo->id;
+            }
         }
         if ($novoStatus === 'faturado' && ! $orcamento->data_faturado) {
             $orcamento->data_faturado = Carbon::today();
-        }
-
-        if ($statusAnterior === 'em_execucao' && $novoStatus === 'cancelado' && $orcamento->id_processo) {
-            Processo::where('id', $orcamento->id_processo)->delete();
-            $orcamento->id_processo = null;
         }
 
         $orcamento->save();
@@ -340,6 +375,23 @@ class OrcamentoController extends Controller
 
         return redirect()->route('orcamentos.index')
             ->with('success', 'Orçamento eliminado.');
+    }
+
+    private function resolveImovelOuProcesso(Request $request, array &$validated): void
+    {
+        if ($request->filled('id_processo')) {
+            $processo = Processo::find($request->input('id_processo'));
+            if ($processo) {
+                $validated['id_processo'] = $processo->id;
+                $validated['id_imovel'] = $processo->id_imovel;
+            }
+            return;
+        }
+        $validated['id_processo'] = null;
+        $idImovel = $this->resolveImovelId($request);
+        if ($idImovel !== null) {
+            $validated['id_imovel'] = $idImovel;
+        }
     }
 
     private function resolveImovelId(Request $request): ?int

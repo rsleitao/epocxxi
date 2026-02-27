@@ -26,7 +26,9 @@
             'designacao' => $o->designacao ?: '—',
             'requerente_nome' => $o->requerente?->nome ?? '—',
             'data_convertido' => $o->data_convertido?->format('d/m/Y'),
+            'id_processo' => $o->id_processo,
             'edit_url' => route('orcamentos.edit', $o),
+            'edit_label' => in_array($o->status, ['aceite', 'em_execucao', 'por_faturar', 'faturado']) ? 'Ver' : 'Editar',
             'destroy_url' => route('orcamentos.destroy', $o),
             'status' => $o->status,
         ])->values()->all();
@@ -148,7 +150,7 @@
                                         <p class="text-sm font-medium text-gray-900 mt-0.5 overflow-hidden" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" x-text="card.designacao"></p>
                                         <p class="text-xs text-gray-600 mt-1" x-text="card.requerente_nome"></p>
                                         <p class="text-xs text-gray-500 mt-0.5" x-show="card.data_convertido" x-text="'Aceite em ' + card.data_convertido"></p>
-                                        <a :href="card.edit_url" class="inline-block mt-2 text-xs font-medium text-epoc-primary hover:text-epoc-primary-hover kanban-cursor-grab">Editar →</a>
+                                        <a :href="card.edit_url" class="inline-block mt-2 text-xs font-medium text-epoc-primary hover:text-epoc-primary-hover kanban-cursor-grab" x-text="card.edit_label + ' →'"></a>
                                     </div>
                                 </template>
                                 <div x-show="!(columns[status]?.length)" class="flex items-center justify-center h-24 text-sm text-gray-400 rounded border-2 border-dashed border-gray-300">
@@ -174,6 +176,36 @@
                 <span class="ml-1" x-show="dragOrcamentoStatus === 'rascunho'">Largue em <strong>Enviado</strong> ou use <strong>Remover</strong> em baixo.</span>
                 <span class="ml-1" x-show="dragOrcamentoStatus === 'enviado'">Largue em <strong>Em execução</strong> ou use os botões em baixo.</span>
                 <span class="ml-1" x-show="dragOrcamentoStatus === 'em_execucao' || dragOrcamentoStatus === 'por_faturar'">Use o botão em baixo para alterar o estado.</span>
+            </div>
+        </div>
+
+        <!-- Modal: ao cancelar orçamento com processo, escolher manter ou apagar processo -->
+        <div x-show="showCancelModal"
+             x-cloak
+             x-transition
+             class="fixed inset-0 z-[210] flex items-center justify-center bg-black/50 p-4"
+             @keydown.escape.window="showCancelModal = false; pendingCancelCard = null">
+            <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <h3 class="text-sm font-semibold text-gray-900">Cancelar orçamento</h3>
+                <p class="mt-2 text-sm text-gray-700">Este orçamento tem processo associado. O que pretende fazer?</p>
+                <div class="mt-4 space-y-2">
+                    <button type="button"
+                            class="w-full px-4 py-3 text-left text-sm rounded-lg border border-gray-200 hover:bg-gray-50"
+                            @click="doCancelado(false)">
+                        Manter processo no histórico (o cancelamento fica registado)
+                    </button>
+                    <button type="button"
+                            class="w-full px-4 py-3 text-left text-sm rounded-lg border border-amber-200 bg-amber-50 hover:bg-amber-100"
+                            @click="doCancelado(true)">
+                        Apagar processo (fica apenas o registo de orçamento cancelado)
+                    </button>
+                </div>
+                <div class="mt-4 pt-3 border-t">
+                    <button type="button" class="text-sm text-gray-500 hover:text-gray-700"
+                            @click="showCancelModal = false; pendingCancelCard = null">
+                        Voltar
+                    </button>
+                </div>
             </div>
         </div>
 
@@ -300,6 +332,8 @@
                 _cursorInterval: null,
                 flashWarning: null,
                 _flashTimeout: null,
+                showCancelModal: false,
+                pendingCancelCard: null,
 
                 dragLeaveButton(event) {
                     if (!event.currentTarget.contains(event.relatedTarget)) {
@@ -334,6 +368,8 @@
                     this.dragOverStatus = null;
                     this.dragOverButton = null;
                     this.dragCardData = null;
+                    this.showCancelModal = false;
+                    this.pendingCancelCard = null;
                 },
 
                 dragOverColumn(event, status) {
@@ -466,7 +502,45 @@
 
                 actionRecusar() { this.actionSetStatus('recusado', false); },
                 actionAceite() { this.actionSetStatus('em_execucao', true); },
-                actionCancelado() { this.actionSetStatus('cancelado', false); },
+                actionCancelado() {
+                    if (this.dragCardData && this.dragCardData.id_processo) {
+                        this.pendingCancelCard = { ...this.dragCardData };
+                        this.showCancelModal = true;
+                        this.dragOrcamentoId = null;
+                        this.dragOrcamentoStatus = null;
+                        this.dragOverButton = null;
+                        this.dragCardData = null;
+                        this.clearDragCursor();
+                        return;
+                    }
+                    this.actionSetStatus('cancelado', false);
+                },
+                doCancelado(apagarProcesso) {
+                    const cardData = this.pendingCancelCard;
+                    if (!cardData) { this.showCancelModal = false; this.pendingCancelCard = null; return; }
+                    const oldStatus = cardData.status;
+                    const id = cardData.id;
+                    this.columns[oldStatus] = (this.columns[oldStatus] || []).filter(c => c.id !== id);
+                    this.showCancelModal = false;
+                    this.pendingCancelCard = null;
+                    const token = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+                    fetch('{{ url("orcamentos") }}/' + cardData.id + '/status', {
+                        method: 'PATCH',
+                        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': token },
+                        body: JSON.stringify({ status: 'cancelado', apagar_processo: !!apagarProcesso }),
+                    })
+                    .then(r => r.json())
+                    .then(data => {
+                        if (!data.ok) {
+                            this.columns[oldStatus] = [...(this.columns[oldStatus] || []), { ...cardData, status: oldStatus }];
+                            this.showFlashWarning(data.message || 'Erro ao cancelar.');
+                        }
+                    })
+                    .catch(() => {
+                        this.columns[oldStatus] = [...(this.columns[oldStatus] || []), { ...cardData, status: oldStatus }];
+                        this.showFlashWarning('Erro ao cancelar.');
+                    });
+                },
                 actionFaturado() { this.actionSetStatus('faturado', false); },
 
                 actionSetStatus(newStatus, moveToColumn) {

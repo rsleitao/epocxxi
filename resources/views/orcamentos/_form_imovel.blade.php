@@ -3,6 +3,7 @@
 @php
     $distritos = $distritos ?? collect();
     $tipo_imoveis = $tipo_imoveis ?? collect();
+    $processos = $processos ?? collect();
     $imoveisDetalhes = ($imoveis ?? collect())->keyBy('id')->map(fn ($i) => [
         'morada' => $i->morada,
         'nip' => $i->nip,
@@ -14,13 +15,30 @@
         'concelho' => $i->concelho?->nome,
         'freguesia' => $i->freguesia?->nome,
     ])->toArray();
+    $modoInicial = old('id_processo', $orcamento?->id_processo) ? 'processo_existente' : (!empty(array_filter(old('novo_imovel', []))) ? 'novo' : 'existente');
+    $processosDetalhes = $processos->keyBy('id')->map(fn ($p) => $p->imovel ? [
+        'referencia' => $p->referencia,
+        'morada' => $p->imovel->morada,
+        'nip' => $p->imovel->nip,
+        'codigo_postal' => $p->imovel->codigo_postal,
+        'localidade' => $p->imovel->localidade,
+        'coordenadas' => $p->imovel->coordenadas,
+        'tipo_imovel' => $p->imovel->tipoImovel?->tipo_imovel,
+        'distrito' => $p->imovel->distrito?->nome,
+        'concelho' => $p->imovel->concelho?->nome,
+        'freguesia' => $p->imovel->freguesia?->nome,
+    ] : null)->filter()->toArray();
 @endphp
-<div class="border border-gray-200 rounded-lg p-4 bg-gray-50/50" x-data="formImovel({{ json_encode($readonly) }}, {{ json_encode(old('id_imovel', $orcamento?->id_imovel)) }}, @js($imoveisDetalhes))">
+<div class="border border-gray-200 rounded-lg p-4 bg-gray-50/50" x-data="formImovel({{ json_encode($readonly) }}, {{ json_encode(old('id_imovel', $orcamento?->id_imovel)) }}, {{ json_encode(old('id_processo', $orcamento?->id_processo)) }}, @js($imoveisDetalhes), @js($processosDetalhes))">
     @if (!$readonly)
-    <div class="flex items-center gap-4 mb-4">
+    <div class="flex flex-wrap items-center gap-4 mb-4">
+        <label class="inline-flex items-center gap-2 cursor-pointer">
+            <input type="radio" name="imovel_modo" value="processo_existente" x-model="modo" class="text-epoc-primary focus:ring-epoc-primary">
+            <span class="text-sm font-medium text-gray-700">Processo existente</span>
+        </label>
         <label class="inline-flex items-center gap-2 cursor-pointer">
             <input type="radio" name="imovel_modo" value="existente" x-model="modo" class="text-epoc-primary focus:ring-epoc-primary">
-            <span class="text-sm font-medium text-gray-700">Selecionar imóvel existente</span>
+            <span class="text-sm font-medium text-gray-700">Imóvel existente</span>
         </label>
         <label class="inline-flex items-center gap-2 cursor-pointer">
             <input type="radio" name="imovel_modo" value="novo" x-model="modo" class="text-epoc-primary focus:ring-epoc-primary">
@@ -29,7 +47,39 @@
     </div>
     @endif
 
-    {{-- Imóvel existente (dropdown só em modo edição) --}}
+    {{-- Processo existente (dropdown) — carrega imóvel do processo --}}
+    @if (!$readonly)
+    <div x-show="modo === 'processo_existente'" x-cloak class="mb-4">
+        <input type="hidden" name="id_processo" :value="modo === 'processo_existente' ? id_processo_selecionado : ''">
+        <x-input-label for="id_processo" value="Processo" />
+        <select id="id_processo" class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm"
+                x-model="id_processo_selecionado" :disabled="modo !== 'processo_existente'">
+            <option value="">— Selecionar —</option>
+            @foreach ($processos as $p)
+                @php
+                    $ref = $p->referencia ?? ('#' . $p->id);
+                    $morada = $p->imovel?->morada ?: $p->imovel?->localidade ?: '—';
+                @endphp
+                <option value="{{ $p->id }}" {{ old('id_processo', $orcamento?->id_processo) == $p->id ? 'selected' : '' }}>{{ $ref }} — {{ Str::limit($morada, 60) }}</option>
+            @endforeach
+        </select>
+        <x-input-error :messages="$errors->get('id_processo')" class="mt-1" />
+        <p class="mt-1 text-xs text-gray-500">O imóvel do processo será associado ao orçamento.</p>
+    </div>
+    <div x-show="modo === 'processo_existente' && id_processo_selecionado && processosDetalhes[id_processo_selecionado]" x-cloak class="mt-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
+        <h4 class="text-sm font-medium text-gray-700 mb-3">Imóvel do processo selecionado</h4>
+        <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">
+            <div><dt class="text-gray-500">Referência</dt><dd class="font-medium text-gray-900" x-text="(processosDetalhes[id_processo_selecionado] || {}).referencia || '—'"></dd></div>
+            <div><dt class="text-gray-500">Tipo</dt><dd class="font-medium text-gray-900" x-text="(processosDetalhes[id_processo_selecionado] || {}).tipo_imovel || '—'"></dd></div>
+            <div><dt class="text-gray-500">Morada</dt><dd class="font-medium text-gray-900" x-text="(processosDetalhes[id_processo_selecionado] || {}).morada || '—'"></dd></div>
+            <div><dt class="text-gray-500">NIP</dt><dd class="font-medium text-gray-900" x-text="(processosDetalhes[id_processo_selecionado] || {}).nip || '—'"></dd></div>
+            <div><dt class="text-gray-500">Localidade</dt><dd class="font-medium text-gray-900" x-text="(processosDetalhes[id_processo_selecionado] || {}).localidade || '—'"></dd></div>
+            <div><dt class="text-gray-500">Distrito</dt><dd class="font-medium text-gray-900" x-text="(processosDetalhes[id_processo_selecionado] || {}).distrito || '—'"></dd></div>
+        </dl>
+    </div>
+    @endif
+
+    {{-- Imóvel existente (dropdown) --}}
     @if (!$readonly)
     <div x-show="modo === 'existente'" x-cloak class="mb-4">
         <x-input-label for="id_imovel" value="Imóvel" />
@@ -173,12 +223,14 @@
 </div>
 
 <script>
-function formImovel(readonly, idImovelInicial, imoveisDetalhes) {
+function formImovel(readonly, idImovelInicial, idProcessoInicial, imoveisDetalhes, processosDetalhes) {
     return {
         readonly: !!readonly,
-        modo: '{{ !empty(array_filter(old("novo_imovel", []))) ? "novo" : "existente" }}',
+        modo: '{{ $modoInicial }}',
         id_imovel_selecionado: idImovelInicial ? String(idImovelInicial) : '',
+        id_processo_selecionado: idProcessoInicial ? String(idProcessoInicial) : '',
         imoveisDetalhes: imoveisDetalhes || {},
+        processosDetalhes: processosDetalhes || {},
         id_distrito: '{{ old('novo_imovel.id_distrito') }}',
         id_concelho: '{{ old('novo_imovel.id_concelho') }}',
         id_freguesia: '{{ old('novo_imovel.id_freguesia') }}',

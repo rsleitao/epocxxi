@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\GeoController;
 use App\Http\Controllers\DocumentoTipoController;
 use App\Http\Controllers\GabineteController;
 use App\Http\Controllers\OrcamentoController;
+use App\Http\Controllers\ProcessoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RequerenteController;
 use App\Http\Controllers\ServicoController;
@@ -34,6 +35,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('servicos', ServicoController::class);
     Route::patch('orcamentos/{orcamento}/status', [OrcamentoController::class, 'updateStatus'])->name('orcamentos.update-status');
     Route::resource('orcamentos', OrcamentoController::class);
+    Route::get('processos', [ProcessoController::class, 'index'])->name('processos.index');
+    Route::get('processos/{processo}', [ProcessoController::class, 'show'])->name('processos.show');
     Route::get('orcamentos/{orcamento}/report', [OrcamentoController::class, 'report'])->name('orcamentos.report');
     Route::get('orcamentos/{orcamento}/gerar-documento/{template}', [TemplateController::class, 'gerarOrcamento'])->name('orcamentos.gerar-documento');
 
