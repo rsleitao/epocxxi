@@ -101,7 +101,11 @@
                 @endforeach
             </select>
             <x-input-error :messages="$errors->get('status')" class="mt-1" />
-            <div x-show="statusSelecionado === 'cancelado' && temProcesso" x-cloak class="mt-3 p-3 rounded-lg bg-amber-50 border border-amber-200">
+            <div x-show="statusSelecionado === 'cancelado'" x-cloak class="mt-3 space-y-3">
+                <div x-show="statusSelecionado === 'cancelado'" class="p-3 rounded-lg bg-gray-50 border border-gray-200">
+                    <p class="text-sm text-gray-700">Ao cancelar, os trabalhos (itens em execução) deste orçamento deixarão de constar na lista de <strong>Trabalhos</strong>.</p>
+                </div>
+                <div x-show="statusSelecionado === 'cancelado' && temProcesso" class="p-3 rounded-lg bg-amber-50 border border-amber-200">
                 <p class="text-sm font-medium text-amber-900 mb-2">Este orçamento tem processo associado. Ao cancelar:</p>
                 <label class="inline-flex items-center gap-2 cursor-pointer">
                     <input type="radio" name="apagar_processo" value="0" {{ old('apagar_processo', '0') === '0' ? 'checked' : '' }} class="text-epoc-primary focus:ring-epoc-primary">
@@ -111,6 +115,7 @@
                     <input type="radio" name="apagar_processo" value="1" {{ old('apagar_processo') === '1' ? 'checked' : '' }} class="text-epoc-primary focus:ring-epoc-primary">
                     <span class="text-sm text-gray-700">Apagar processo (fica apenas o registo de orçamento cancelado)</span>
                 </label>
+                </div>
             </div>
         </div>
         <div>

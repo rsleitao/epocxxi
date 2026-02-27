@@ -188,6 +188,9 @@
             <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
                 <h3 class="text-sm font-semibold text-gray-900">Cancelar orçamento</h3>
                 <p class="mt-2 text-sm text-gray-700">Este orçamento tem processo associado. O que pretende fazer?</p>
+                <p class="mt-2 text-sm text-amber-700" x-show="pendingCancelCard && pendingCancelCard.status === 'em_execucao'">
+                    Os trabalhos (itens em execução) deste orçamento deixarão de constar na lista de Trabalhos.
+                </p>
                 <div class="mt-4 space-y-2">
                     <button type="button"
                             class="w-full px-4 py-3 text-left text-sm rounded-lg border border-gray-200 hover:bg-gray-50"
@@ -513,6 +516,7 @@
                         this.clearDragCursor();
                         return;
                     }
+                    if (this.dragCardData && this.dragCardData.status === 'em_execucao' && !confirm('Os trabalhos deste orçamento deixarão de constar na lista de Trabalhos. Continuar?')) return;
                     this.actionSetStatus('cancelado', false);
                 },
                 doCancelado(apagarProcesso) {

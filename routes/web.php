@@ -10,6 +10,7 @@ use App\Http\Controllers\RequerenteController;
 use App\Http\Controllers\ServicoController;
 use App\Http\Controllers\SubcontratadoController;
 use App\Http\Controllers\TemplateController;
+use App\Http\Controllers\TrabalhosController;
 use App\Http\Controllers\TipoImovelController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,6 +38,8 @@ Route::middleware('auth')->group(function () {
     Route::resource('orcamentos', OrcamentoController::class);
     Route::get('processos', [ProcessoController::class, 'index'])->name('processos.index');
     Route::get('processos/{processo}', [ProcessoController::class, 'show'])->name('processos.show');
+    Route::get('trabalhos', [TrabalhosController::class, 'index'])->name('trabalhos.index');
+    Route::patch('trabalhos/{item}/concluido', [TrabalhosController::class, 'markConcluido'])->name('trabalhos.mark-concluido');
     Route::get('orcamentos/{orcamento}/report', [OrcamentoController::class, 'report'])->name('orcamentos.report');
     Route::get('orcamentos/{orcamento}/gerar-documento/{template}', [TemplateController::class, 'gerarOrcamento'])->name('orcamentos.gerar-documento');
 

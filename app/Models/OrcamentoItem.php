@@ -17,6 +17,9 @@ class OrcamentoItem extends Model
         'quantidade',
         'prazo_data',
         'percentagem_iva',
+        'concluido_em',
+        'id_user',
+        'id_subcontratado',
     ];
 
     public function servico(): BelongsTo
@@ -29,10 +32,41 @@ class OrcamentoItem extends Model
         'quantidade' => 'decimal:2',
         'prazo_data' => 'date',
         'percentagem_iva' => 'decimal:2',
+        'concluido_em' => 'datetime',
     ];
+
+    public function isConcluido(): bool
+    {
+        return $this->concluido_em !== null;
+    }
 
     public function orcamento(): BelongsTo
     {
         return $this->belongsTo(Orcamento::class, 'id_orcamento');
+    }
+
+    public function user(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'id_user');
+    }
+
+    public function subcontratado(): BelongsTo
+    {
+        return $this->belongsTo(Subcontratado::class, 'id_subcontratado');
+    }
+
+    /**
+     * Nome do técnico atribuído (user ou subcontratado do item).
+     */
+    public function getTecnicoNomeAttribute(): ?string
+    {
+        if ($this->id_user) {
+            return $this->user?->name;
+        }
+        if ($this->id_subcontratado) {
+            return $this->subcontratado?->nome;
+        }
+
+        return null;
     }
 }

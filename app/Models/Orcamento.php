@@ -99,4 +99,20 @@ class Orcamento extends Model
 
         return round($total, 2);
     }
+
+    /**
+     * True se o orçamento está em execução e todos os itens têm concluido_em preenchido.
+     */
+    public function allItensConcluidos(): bool
+    {
+        if ($this->status !== 'em_execucao') {
+            return false;
+        }
+        $total = $this->itens()->count();
+        if ($total === 0) {
+            return false;
+        }
+
+        return $this->itens()->whereNotNull('concluido_em')->count() === $total;
+    }
 }
