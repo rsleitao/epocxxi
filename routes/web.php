@@ -32,6 +32,7 @@ Route::middleware('auth')->group(function () {
     Route::resource('subcontratados', SubcontratadoController::class);
     Route::resource('tipo-imoveis', TipoImovelController::class)->parameters(['tipo-imoveis' => 'tipoImovel']);
     Route::resource('servicos', ServicoController::class);
+    Route::patch('orcamentos/{orcamento}/status', [OrcamentoController::class, 'updateStatus'])->name('orcamentos.update-status');
     Route::resource('orcamentos', OrcamentoController::class);
     Route::get('orcamentos/{orcamento}/report', [OrcamentoController::class, 'report'])->name('orcamentos.report');
     Route::get('orcamentos/{orcamento}/gerar-documento/{template}', [TemplateController::class, 'gerarOrcamento'])->name('orcamentos.gerar-documento');

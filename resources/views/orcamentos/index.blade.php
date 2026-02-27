@@ -1,9 +1,21 @@
 <x-app-layout>
     <x-slot name="header">
-        <div class="flex justify-between items-center">
-            <h2 class="font-semibold text-xl text-gray-800 leading-tight">
-                Orçamentos
-            </h2>
+        <div class="flex flex-wrap justify-between items-center gap-3">
+            <div class="flex items-center gap-3">
+                <h2 class="font-semibold text-xl text-gray-800 leading-tight">
+                    Orçamentos
+                </h2>
+                <nav class="flex rounded-lg border border-gray-300 p-0.5 bg-gray-100" aria-label="Vista">
+                    <a href="{{ route('orcamentos.index', request()->only(['status', 'id_gabinete', 'q'])) }}"
+                       class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-900 shadow border border-gray-200">
+                        Lista
+                    </a>
+                    <a href="{{ route('orcamentos.index', array_merge(request()->only(['status', 'id_gabinete', 'q']), ['view' => 'kanban'])) }}"
+                       class="px-3 py-1.5 text-sm font-medium rounded-md text-gray-600 hover:text-gray-900">
+                        Kanban
+                    </a>
+                </nav>
+            </div>
             <a href="{{ route('orcamentos.create') }}"
                class="inline-flex items-center px-4 py-2 bg-epoc-primary border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-epoc-primary-hover">
                 Novo orçamento
@@ -24,7 +36,9 @@
                                 <option value="enviado" {{ request('status') === 'enviado' ? 'selected' : '' }}>Enviado</option>
                                 <option value="aceite" {{ request('status') === 'aceite' ? 'selected' : '' }}>Aceite</option>
                                 <option value="recusado" {{ request('status') === 'recusado' ? 'selected' : '' }}>Recusado</option>
-                                <option value="convertido" {{ request('status') === 'convertido' ? 'selected' : '' }}>Convertido</option>
+                                <option value="cancelado" {{ request('status') === 'cancelado' ? 'selected' : '' }}>Cancelado</option>
+                                <option value="em_execucao" {{ request('status') === 'em_execucao' ? 'selected' : '' }}>Em execução</option>
+                                <option value="por_faturar" {{ request('status') === 'por_faturar' ? 'selected' : '' }}>Por faturar</option>
                                 <option value="faturado" {{ request('status') === 'faturado' ? 'selected' : '' }}>Faturado</option>
                             </select>
                         </div>
@@ -77,12 +91,20 @@
                                                 'enviado' => 'bg-blue-100 text-blue-800',
                                                 'aceite' => 'bg-green-100 text-green-800',
                                                 'recusado' => 'bg-red-100 text-red-800',
-                                                'convertido' => 'bg-epoc-lighter text-epoc-primary',
+                                                'cancelado' => 'bg-gray-200 text-gray-700',
+                                                'em_execucao' => 'bg-epoc-lighter text-epoc-primary',
+                                                'por_faturar' => 'bg-amber-100 text-amber-800',
                                                 'faturado' => 'bg-emerald-100 text-emerald-800',
                                             ];
+                                            $statusLabels = [
+                                                'rascunho' => 'Rascunho', 'enviado' => 'Enviado', 'aceite' => 'Aceite',
+                                                'recusado' => 'Recusado', 'cancelado' => 'Cancelado', 'em_execucao' => 'Em execução',
+                                                'por_faturar' => 'Por faturar', 'faturado' => 'Faturado',
+                                            ];
                                             $c = $badges[$orcamento->status] ?? 'bg-gray-100 text-gray-800';
+                                            $label = $statusLabels[$orcamento->status] ?? $orcamento->status;
                                         @endphp
-                                        <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded {{ $c }}">{{ $orcamento->status }}</span>
+                                        <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded {{ $c }}">{{ $label }}</span>
                                     </td>
                                     <td class="px-4 py-3 text-sm text-gray-900">{{ Str::limit($orcamento->designacao, 40) ?? '—' }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ $orcamento->requerente?->nome ?? '—' }}</td>

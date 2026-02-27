@@ -8,12 +8,14 @@ use App\Models\Imovel;
 use App\Models\Orcamento;
 use App\Models\OrcamentoHistorico;
 use App\Models\OrcamentoItem;
+use App\Models\Processo;
 use App\Models\Requerente;
 use App\Models\Servico;
 use App\Models\Subcontratado;
 use App\Models\Template;
 use App\Models\TipoImovel;
 use Carbon\Carbon;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -44,8 +46,22 @@ class OrcamentoController extends Controller
             });
         }
 
-        $orcamentos = $query->paginate(15)->withQueryString();
         $gabinetes = Gabinete::orderBy('nome')->get();
+
+        if ($request->input('view') === 'kanban') {
+            $orcamentos = $query->limit(200)->get();
+            // Unificar "convertido" com "em_execucao" para compatibilidade (após migração só há em_execucao)
+            $grouped = $orcamentos->groupBy('status');
+            $emExecucao = $grouped->get('em_execucao', collect())->concat($grouped->get('convertido', collect()));
+            $grouped->put('em_execucao', $emExecucao);
+            $grouped->forget('convertido');
+            $orcamentosPorStatus = $grouped;
+            $statusOrdem = ['rascunho', 'enviado', 'em_execucao', 'por_faturar'];
+
+            return view('orcamentos.kanban', compact('orcamentosPorStatus', 'gabinetes', 'statusOrdem'));
+        }
+
+        $orcamentos = $query->paginate(15)->withQueryString();
 
         return view('orcamentos.index', compact('orcamentos', 'gabinetes'));
     }
@@ -66,7 +82,7 @@ class OrcamentoController extends Controller
     public function store(Request $request): RedirectResponse
     {
         $validator = Validator::make($request->all(), [
-            'status' => 'required|string|in:rascunho,enviado,aceite,recusado,convertido,faturado',
+            'status' => 'required|string|in:rascunho,enviado',
             'id_requerente' => 'required|exists:requerentes,id',
             'id_requerente_fatura' => 'nullable|exists:requerentes,id',
             'id_imovel' => 'nullable|exists:imoveis,id',
@@ -102,7 +118,7 @@ class OrcamentoController extends Controller
             $validated['id_imovel'] = $idImovel;
         }
 
-        if ($validated['status'] === 'convertido') {
+        if ($validated['status'] === 'em_execucao') {
             $validated['data_convertido'] = Carbon::today();
         }
         if ($validated['status'] === 'faturado') {
@@ -185,14 +201,14 @@ class OrcamentoController extends Controller
         }
 
         $validator = Validator::make($request->all(), [
-            'status' => 'required|string|in:rascunho,enviado,aceite,recusado,convertido,faturado',
+            'status' => 'required|string|in:rascunho,enviado,aceite,recusado,cancelado,em_execucao,por_faturar,faturado',
             'id_requerente' => 'required|exists:requerentes,id',
             'id_requerente_fatura' => 'nullable|exists:requerentes,id',
             'id_imovel' => 'nullable|exists:imoveis,id',
             'id_gabinete' => 'required|exists:gabinetes,id',
             'id_subcontratado' => 'nullable|exists:subcontratados,id',
             'designacao' => 'nullable|string|max:500',
-        ])->after(function ($validator) use ($request) {
+        ])->after(function ($validator) use ($request, $orcamento) {
             $itens = $request->input('itens', []);
             $temLinhaValida = collect($itens)->contains(function ($i) {
                 $idServico = ! empty($i['id_servico'] ?? null);
@@ -202,6 +218,22 @@ class OrcamentoController extends Controller
             });
             if (! $temLinhaValida) {
                 $validator->errors()->add('itens', 'Deve adicionar pelo menos uma linha com um serviço selecionado ou preço base preenchido.');
+            }
+
+            // Regras de transição do pipeline (incl. manter estado atual)
+            $estadoAtual = $orcamento->status;
+            $novoEstado = $request->input('status');
+            $transicoesPermitidas = [
+                'rascunho' => ['rascunho', 'enviado'],
+                'enviado' => ['enviado', 'recusado', 'em_execucao'],
+                'em_execucao' => ['em_execucao', 'cancelado'],
+                'por_faturar' => ['por_faturar', 'faturado'],
+                'aceite' => ['aceite', 'em_execucao'],
+                'recusado' => ['recusado'], 'cancelado' => ['cancelado'], 'faturado' => ['faturado'],
+            ];
+            $permitidos = $transicoesPermitidas[$estadoAtual] ?? [];
+            if (! in_array($novoEstado, $permitidos, true)) {
+                $validator->errors()->add('status', 'Transição de estado não permitida.');
             }
         });
 
@@ -214,14 +246,25 @@ class OrcamentoController extends Controller
             $validated['id_imovel'] = $idImovel;
         }
 
-        if ($request->input('status') === 'convertido' && ! $orcamento->data_convertido) {
+        $estadoAnterior = $orcamento->status;
+        $novoEstado = $validated['status'] ?? $estadoAnterior;
+
+        // Em execução: guardar data de entrada
+        if ($novoEstado === 'em_execucao' && ! $orcamento->data_convertido) {
             $validated['data_convertido'] = Carbon::today();
         }
-        if ($request->input('status') === 'faturado' && ! $orcamento->data_faturado) {
+        // Faturado: guardar data de faturação
+        if ($novoEstado === 'faturado' && ! $orcamento->data_faturado) {
             $validated['data_faturado'] = Carbon::today();
         }
 
-        $statusAnterior = $orcamento->status;
+        // Ao cancelar a partir de em execução, limpar processo associado
+        if ($estadoAnterior === 'em_execucao' && $novoEstado === 'cancelado' && $orcamento->id_processo) {
+            Processo::where('id', $orcamento->id_processo)->delete();
+            $validated['id_processo'] = null;
+        }
+
+        $statusAnterior = $estadoAnterior;
         $orcamento->update($validated);
 
         if ($request->input('status') !== $statusAnterior) {
@@ -239,9 +282,61 @@ class OrcamentoController extends Controller
             ->with('success', 'Orçamento atualizado com sucesso.');
     }
 
-    public function destroy(Orcamento $orcamento): RedirectResponse
+    public function updateStatus(Request $request, Orcamento $orcamento): JsonResponse
+    {
+        if ($orcamento->status === 'faturado') {
+            return response()->json(['ok' => false, 'message' => 'Orçamento faturado não pode ser alterado.'], 422);
+        }
+
+        $request->validate(['status' => 'required|string|in:rascunho,enviado,aceite,recusado,cancelado,em_execucao,por_faturar,faturado']);
+
+        $novoStatus = $request->input('status');
+        $statusAnterior = $orcamento->status;
+
+        $transicoesKanban = [
+            'rascunho' => ['enviado'],
+            'enviado' => ['recusado', 'em_execucao'],
+            'em_execucao' => ['cancelado'],
+            'por_faturar' => ['faturado'],
+            'aceite' => ['em_execucao'],
+        ];
+        $permitidos = $transicoesKanban[$statusAnterior] ?? [];
+        if (! in_array($novoStatus, $permitidos, true)) {
+            return response()->json(['ok' => false, 'message' => 'Transição de estado não permitida.'], 422);
+        }
+
+        $orcamento->status = $novoStatus;
+        if ($novoStatus === 'em_execucao' && ! $orcamento->data_convertido) {
+            $orcamento->data_convertido = Carbon::today();
+        }
+        if ($novoStatus === 'faturado' && ! $orcamento->data_faturado) {
+            $orcamento->data_faturado = Carbon::today();
+        }
+
+        if ($statusAnterior === 'em_execucao' && $novoStatus === 'cancelado' && $orcamento->id_processo) {
+            Processo::where('id', $orcamento->id_processo)->delete();
+            $orcamento->id_processo = null;
+        }
+
+        $orcamento->save();
+
+        OrcamentoHistorico::create([
+            'id_orcamento' => $orcamento->id,
+            'status_anterior' => $statusAnterior,
+            'status_novo' => $novoStatus,
+            'user_id' => $request->user()->id,
+        ]);
+
+        return response()->json(['ok' => true, 'status' => $novoStatus]);
+    }
+
+    public function destroy(Request $request, Orcamento $orcamento): RedirectResponse|JsonResponse
     {
         $orcamento->delete();
+
+        if ($request->wantsJson()) {
+            return response()->json(['ok' => true]);
+        }
 
         return redirect()->route('orcamentos.index')
             ->with('success', 'Orçamento eliminado.');

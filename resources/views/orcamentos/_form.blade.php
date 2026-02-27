@@ -12,9 +12,29 @@
         'enviado' => 'Enviado',
         'aceite' => 'Aceite',
         'recusado' => 'Recusado',
-        'convertido' => 'Convertido',
+        'cancelado' => 'Cancelado',
+        'em_execucao' => 'Em execução',
+        'por_faturar' => 'Por faturar',
         'faturado' => 'Faturado',
     ];
+
+    // Na criação só rascunho ou enviado. Na edição mostramos as transições permitidas a partir do estado atual.
+    if ($orcamento) {
+        $estadoAtual = $orcamento->status;
+        $transicoesPermitidas = [
+            'rascunho' => ['rascunho', 'enviado'],
+            'enviado' => ['enviado', 'recusado', 'em_execucao'],
+            'em_execucao' => ['em_execucao', 'cancelado'],
+            'por_faturar' => ['por_faturar', 'faturado'],
+            'aceite' => ['aceite', 'em_execucao'],
+            'recusado' => ['recusado'],
+            'cancelado' => ['cancelado'],
+            'faturado' => ['faturado'],
+        ];
+        $selectableStatuses = $transicoesPermitidas[$estadoAtual] ?? [$estadoAtual];
+    } else {
+        $selectableStatuses = ['rascunho', 'enviado'];
+    }
 @endphp
 
 @if ($readonly)
@@ -72,12 +92,11 @@
         <div>
             <x-input-label for="status" value="Estado *" />
             <select id="status" name="status" required class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm">
-                <option value="rascunho" {{ old('status', $orcamento?->status) === 'rascunho' ? 'selected' : '' }}>Rascunho</option>
-                <option value="enviado" {{ old('status', $orcamento?->status) === 'enviado' ? 'selected' : '' }}>Enviado</option>
-                <option value="aceite" {{ old('status', $orcamento?->status) === 'aceite' ? 'selected' : '' }}>Aceite</option>
-                <option value="recusado" {{ old('status', $orcamento?->status) === 'recusado' ? 'selected' : '' }}>Recusado</option>
-                <option value="convertido" {{ old('status', $orcamento?->status) === 'convertido' ? 'selected' : '' }}>Convertido</option>
-                <option value="faturado" {{ old('status', $orcamento?->status) === 'faturado' ? 'selected' : '' }}>Faturado</option>
+                @foreach ($selectableStatuses as $status)
+                    <option value="{{ $status }}" {{ old('status', $orcamento?->status) === $status ? 'selected' : '' }}>
+                        {{ $statusLabels[$status] ?? $status }}
+                    </option>
+                @endforeach
             </select>
             <x-input-error :messages="$errors->get('status')" class="mt-1" />
         </div>

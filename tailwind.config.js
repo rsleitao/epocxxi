@@ -9,6 +9,11 @@ export default {
         './resources/views/**/*.blade.php',
     ],
 
+    safelist: [
+        { pattern: /^bg-(green|blue)-(700|800)$/ },
+        { pattern: /^text-white$/ },
+    ],
+
     theme: {
         extend: {
             fontFamily: {
