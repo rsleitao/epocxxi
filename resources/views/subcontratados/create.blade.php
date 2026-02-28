@@ -12,7 +12,7 @@
     <div class="py-12">
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <form method="post" action="{{ route('subcontratados.store') }}" class="p-6 space-y-6">
+                <form method="post" action="{{ route('subcontratados.store') }}" class="p-6 space-y-6" data-unsaved-warn data-draft-key="subcontratados.create">
                     @csrf
                     @include('subcontratados._form', ['subcontratado' => null])
                     <div class="flex gap-3">

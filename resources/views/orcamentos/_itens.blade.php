@@ -21,7 +21,6 @@
         <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md table-fixed">
             <colgroup>
                 <col class="w-40">
-                <col>
                 <col class="w-28">
                 <col class="w-28">
                 <col class="w-24">
@@ -33,7 +32,6 @@
             <thead class="bg-gray-50">
                 <tr>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Serviço</th>
-                    <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fase</th>
                     <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Prazo</th>
                     <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Quantidade</th>
@@ -59,7 +57,6 @@
                 @endphp
                 <tr>
                     <td class="px-3 py-2 text-sm text-gray-900">{{ $item->servico?->nome ?? 'Serviço ocasional' }}</td>
-                    <td class="px-3 py-2 text-sm text-gray-700">{{ $item->descricao ?? '—' }}</td>
                     <td class="px-3 py-2 text-sm text-gray-600">{{ $item->servico?->tipo_trabalho ?? '—' }}</td>
                     <td class="px-3 py-2 text-sm text-gray-700">{{ $item->prazo_data?->format('d/m/Y') ?? '—' }}</td>
                     <td class="px-3 py-2 text-sm text-right text-gray-900">{{ $item->quantidade ?? '—' }}</td>
@@ -70,14 +67,14 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="9" class="px-3 py-4 text-sm text-gray-500 text-center">Nenhuma linha.</td>
+                    <td colspan="8" class="px-3 py-4 text-sm text-gray-500 text-center">Nenhuma linha.</td>
                 </tr>
                 @endforelse
             </tbody>
             @if ($orcamento->itens->isNotEmpty())
             <tfoot class="bg-gray-50 border-t-2 border-gray-200 font-medium text-sm">
                 <tr>
-                    <td class="px-3 py-3" colspan="5"></td>
+                    <td class="px-3 py-3" colspan="4"></td>
                     <td class="px-3 py-3 text-right text-gray-900">{{ number_format($subtotalReadonly, 2, ',', ' ') }} €</td>
                     <td class="px-3 py-3 text-right text-gray-600">{{ number_format((float) ($orcamento->percentagem_iva ?? 23), 0) }}%</td>
                     <td class="px-3 py-3 text-right text-gray-900">{{ number_format($valorIvaTotalReadonly, 2, ',', ' ') }} €</td>

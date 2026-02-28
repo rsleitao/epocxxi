@@ -108,7 +108,6 @@
                             <table class="min-w-full divide-y divide-gray-200 border border-gray-200 rounded-md table-fixed text-sm">
                                 <colgroup>
                                     <col class="w-40">
-                                    <col>
                                     <col class="w-28">
                                     <col class="w-28">
                                     <col class="w-24">
@@ -120,7 +119,6 @@
                                 <thead class="bg-gray-50">
                                     <tr>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Serviço</th>
-                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Fase</th>
                                         <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Prazo</th>
                                         <th class="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase">Qtd</th>
@@ -147,7 +145,6 @@
                                         @endphp
                                         <tr>
                                             <td class="px-3 py-2 text-gray-900">{{ $item->servico?->nome ?? 'Serviço ocasional' }}</td>
-                                            <td class="px-3 py-2 text-gray-700">{{ $item->descricao ?? '—' }}</td>
                                             <td class="px-3 py-2 text-gray-600">{{ $item->servico?->tipo_trabalho ?? '—' }}</td>
                                             <td class="px-3 py-2 text-gray-700">{{ $item->prazo_data?->format('d/m/Y') ?? '—' }}</td>
                                             <td class="px-3 py-2 text-right text-gray-900">{{ $item->quantidade ?? '—' }}</td>
@@ -158,14 +155,14 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="9" class="px-3 py-4 text-center text-gray-500">Nenhuma linha de orçamento.</td>
+                                            <td colspan="8" class="px-3 py-4 text-center text-gray-500">Nenhuma linha de orçamento.</td>
                                         </tr>
                                     @endforelse
                                 </tbody>
                                 @if ($orcamento->itens->isNotEmpty())
                                     <tfoot class="bg-gray-50 border-t-2 border-gray-200 font-medium">
                                         <tr>
-                                            <td colspan="5" class="px-3 py-3"></td>
+                                            <td colspan="4" class="px-3 py-3"></td>
                                             <td class="px-3 py-3 text-right text-gray-900">{{ number_format($subtotal, 2, ',', ' ') }} €</td>
                                             <td class="px-3 py-3 text-right text-gray-600">{{ number_format($ivaOrcamento, 0) }}%</td>
                                             <td class="px-3 py-3 text-right text-gray-900">{{ number_format($totalIva, 2, ',', ' ') }} €</td>

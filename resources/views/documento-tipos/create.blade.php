@@ -10,7 +10,7 @@
     <div class="py-12">
         <div class="max-w-2xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
-                <form method="post" action="{{ route('documento-tipos.store') }}" class="p-6 space-y-4">
+                <form data-unsaved-warn method="post" action="{{ route('documento-tipos.store') }}" class="p-6 space-y-4">
                     @csrf
                     <div>
                         <x-input-label for="nome" value="Nome *" />

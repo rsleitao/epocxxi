@@ -24,6 +24,7 @@ class DatabaseSeeder extends Seeder
 
         $this->call([
             DocumentoTipoSeeder::class,
+            DadosTesteSeeder::class,
         ]);
     }
 }

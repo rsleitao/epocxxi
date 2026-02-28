@@ -25,10 +25,11 @@
             'numero' => $o->numero ?? (string) $o->id,
             'designacao' => $o->designacao ?: '—',
             'requerente_nome' => $o->requerente?->nome ?? '—',
+            'data_criacao' => $o->created_at?->format('d/m/Y'),
             'data_convertido' => $o->data_convertido?->format('d/m/Y'),
             'id_processo' => $o->id_processo,
             'edit_url' => route('orcamentos.edit', $o),
-            'edit_label' => in_array($o->status, ['aceite', 'em_execucao', 'por_faturar', 'faturado']) ? 'Ver' : 'Editar',
+            'edit_label' => in_array($o->status, ['enviado', 'aceite', 'em_execucao', 'por_faturar', 'faturado']) ? 'Ver' : 'Editar',
             'destroy_url' => route('orcamentos.destroy', $o),
             'status' => $o->status,
         ])->values()->all();
@@ -51,11 +52,11 @@
                     Orçamentos
                 </h2>
                 <nav class="flex rounded-lg border border-gray-300 p-0.5 bg-gray-100" aria-label="Vista">
-                    <a href="{{ route('orcamentos.index', request()->only(['id_gabinete', 'q'])) }}"
+                    <a href="{{ route('orcamentos.index', request()->only(['id_gabinete', 'q', 'ordenar'])) }}"
                        class="px-3 py-1.5 text-sm font-medium rounded-md text-gray-600 hover:text-gray-900">
                         Lista
                     </a>
-                    <a href="{{ route('orcamentos.index', array_merge(request()->only(['id_gabinete', 'q']), ['view' => 'kanban'])) }}"
+                    <a href="{{ route('orcamentos.index', array_merge(request()->only(['id_gabinete', 'q', 'ordenar']), ['view' => 'kanban'])) }}"
                        class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-900 shadow border border-gray-200">
                         Kanban
                     </a>
@@ -70,7 +71,20 @@
 
     <div class="py-6 pb-20" x-data="kanbanOrcamentos(@js($boardData), @js($statusOrdemVisiveis))">
         <div class="max-w-full mx-auto sm:px-6 lg:px-8">
-            <div class="mb-4 flex justify-center">
+            <div class="mb-4 flex justify-center" x-data="{
+                form: null,
+                debounceTimer: null,
+                init() {
+                    this.form = this.$el.querySelector('form');
+                    this.form.querySelector('#id_gabinete').addEventListener('change', () => this.form.submit());
+                    this.form.querySelector('#ordenar').addEventListener('change', () => this.form.submit());
+                    const q = this.form.querySelector('#q');
+                    q.addEventListener('input', () => {
+                        clearTimeout(this.debounceTimer);
+                        this.debounceTimer = setTimeout(() => this.form.submit(), 400);
+                    });
+                }
+            }">
                 <form method="get" action="{{ route('orcamentos.index') }}" class="flex flex-wrap items-end gap-2 justify-center">
                     <input type="hidden" name="view" value="kanban">
                     <div>
@@ -83,21 +97,26 @@
                         </select>
                     </div>
                     <div>
+                        <label for="ordenar" class="block text-xs font-medium text-gray-500 mb-0.5">Ordenar</label>
+                        <select name="ordenar" id="ordenar" class="rounded-md border-gray-300 shadow-sm focus:border-epoc-primary focus:ring-epoc-primary text-sm w-40">
+                            <option value="recente" {{ ($ordenar ?? 'recente') === 'recente' ? 'selected' : '' }}>Mais recente</option>
+                            <option value="antigo" {{ ($ordenar ?? '') === 'antigo' ? 'selected' : '' }}>Mais antigo</option>
+                        </select>
+                    </div>
+                    <div>
                         <label for="q" class="block text-xs font-medium text-gray-500 mb-0.5">Pesquisar</label>
                         <input type="search" name="q" id="q" value="{{ request('q') }}"
                                placeholder="Designação ou requerente..."
                                class="rounded-md border-gray-300 shadow-sm focus:border-epoc-primary focus:ring-epoc-primary w-56 text-sm">
                     </div>
-                    <button type="submit" class="px-4 py-2 bg-gray-200 rounded-md text-sm font-medium hover:bg-gray-300">
-                        Filtrar
-                    </button>
-                    @if (request()->hasAny(['id_gabinete', 'q']))
-                        <a href="{{ route('orcamentos.index', ['view' => 'kanban']) }}" class="px-4 py-2 text-gray-600 text-sm hover:underline">
-                            Limpar
+                    @if (request()->hasAny(['id_gabinete', 'q']) || request('ordenar') === 'antigo')
+                        <a href="{{ route('orcamentos.index', ['view' => 'kanban']) }}" class="px-4 py-2 text-gray-600 text-sm hover:underline self-end">
+                            Limpar filtros
                         </a>
                     @endif
                 </form>
             </div>
+            <p class="text-center text-xs text-gray-500 mb-2">Filtros aplicam-se ao alterar (pesquisa com pequeno atraso).</p>
 
             <div class="flex justify-center overflow-x-auto pb-4 min-h-[calc(100vh-14rem)]">
                 <div class="inline-flex gap-4" style="scrollbar-width: thin;">
@@ -147,6 +166,7 @@
                                          @dragstart="dragStart($event, card.id, card.status)"
                                          @dragend="dragEnd($event)">
                                         <p class="text-xs font-mono text-gray-500" x-text="card.numero"></p>
+                                        <p class="text-xs text-gray-400" x-text="'Criado em ' + (card.data_criacao || '—')"></p>
                                         <p class="text-sm font-medium text-gray-900 mt-0.5 overflow-hidden" style="display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;" x-text="card.designacao"></p>
                                         <p class="text-xs text-gray-600 mt-1" x-text="card.requerente_nome"></p>
                                         <p class="text-xs text-gray-500 mt-0.5" x-show="card.data_convertido" x-text="'Aceite em ' + card.data_convertido"></p>

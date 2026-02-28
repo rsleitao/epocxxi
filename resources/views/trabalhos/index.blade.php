@@ -112,6 +112,26 @@
         </div>
     </div>
 
+    {{-- Modal: orçamento passou a Por faturar --}}
+    <div id="modal-por-faturar" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/50 p-4" aria-modal="true" role="dialog" aria-labelledby="modal-por-faturar-title">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div class="flex items-center gap-3">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-emerald-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-emerald-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/></svg>
+                </div>
+                <div class="flex-1">
+                    <h3 id="modal-por-faturar-title" class="text-sm font-semibold text-gray-900">Orçamento atualizado</h3>
+                    <p class="mt-1 text-sm text-gray-600">Todos os trabalhos deste orçamento foram concluídos. O orçamento passou a <strong>«Por faturar»</strong>.</p>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button type="button" id="modal-por-faturar-ok" class="px-4 py-2 text-sm font-medium text-white bg-epoc-primary rounded-md hover:bg-epoc-primary-hover">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
     {{-- Modal: atribuir técnico e marcar concluído --}}
     <div id="modal-tecnico" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
         <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
@@ -186,7 +206,10 @@
                     const data = await res.json();
                     if (data.ok) {
                         if (data.orcamento_por_faturar) {
-                            alert('Todos os trabalhos deste orçamento foram concluídos. O orçamento passou a «Por faturar».');
+                            closeModal();
+                            document.getElementById('modal-por-faturar').classList.remove('hidden');
+                            document.getElementById('modal-por-faturar').classList.add('flex');
+                            return;
                         }
                         window.location.reload();
                     } else {
@@ -197,6 +220,19 @@
                 }
                 confirmBtn.disabled = false;
                 closeModal();
+            });
+
+            document.getElementById('modal-por-faturar-ok').addEventListener('click', function() {
+                document.getElementById('modal-por-faturar').classList.add('hidden');
+                document.getElementById('modal-por-faturar').classList.remove('flex');
+                window.location.reload();
+            });
+            document.getElementById('modal-por-faturar').addEventListener('click', function(e) {
+                if (e.target === this) {
+                    this.classList.add('hidden');
+                    this.classList.remove('flex');
+                    window.location.reload();
+                }
             });
 
             document.querySelectorAll('.trabalho-desfazer').forEach(btn => {

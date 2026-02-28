@@ -111,7 +111,7 @@
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ Str::limit($orcamento->imovel?->morada, 25) ?? '—' }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ $orcamento->gabinete?->nome ?? '—' }}</td>
                                     <td class="px-4 py-3 text-sm text-right space-x-2">
-                                        <a href="{{ route('orcamentos.edit', $orcamento) }}" class="text-epoc-primary hover:text-epoc-primary-hover">{{ in_array($orcamento->status, ['aceite', 'em_execucao', 'por_faturar', 'faturado']) ? 'Ver' : 'Editar' }}</a>
+                                        <a href="{{ route('orcamentos.edit', $orcamento) }}" class="text-epoc-primary hover:text-epoc-primary-hover">{{ in_array($orcamento->status, ['enviado', 'aceite', 'em_execucao', 'por_faturar', 'faturado']) ? 'Ver' : 'Editar' }}</a>
                                         @if (in_array($orcamento->status, ['rascunho', 'enviado', 'recusado', 'cancelado']))
                                             <form action="{{ route('orcamentos.destroy', $orcamento) }}" method="post" class="inline" onsubmit="return confirm('Eliminar este orçamento?');">
                                                 @csrf

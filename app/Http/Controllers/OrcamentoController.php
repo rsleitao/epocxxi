@@ -26,9 +26,10 @@ class OrcamentoController extends Controller
 {
     public function index(Request $request): View
     {
+        $ordenar = $request->input('ordenar', 'recente');
         $query = Orcamento::query()
             ->with(['requerente', 'imovel', 'gabinete'])
-            ->orderByDesc('created_at');
+            ->orderBy('created_at', $ordenar === 'antigo' ? 'asc' : 'desc');
 
         if ($request->filled('status')) {
             $query->where('status', $request->input('status'));
@@ -58,7 +59,7 @@ class OrcamentoController extends Controller
             $orcamentosPorStatus = $grouped;
             $statusOrdem = ['rascunho', 'enviado', 'em_execucao', 'por_faturar'];
 
-            return view('orcamentos.kanban', compact('orcamentosPorStatus', 'gabinetes', 'statusOrdem'));
+            return view('orcamentos.kanban', compact('orcamentosPorStatus', 'gabinetes', 'statusOrdem', 'ordenar'));
         }
 
         $orcamentos = $query->paginate(15)->withQueryString();
@@ -195,10 +196,10 @@ class OrcamentoController extends Controller
 
     public function update(Request $request, Orcamento $orcamento): RedirectResponse
     {
-        $apenasConsulta = in_array($orcamento->status, ['aceite', 'em_execucao', 'por_faturar', 'faturado'], true);
+        $apenasConsulta = in_array($orcamento->status, ['enviado', 'aceite', 'em_execucao', 'por_faturar', 'faturado'], true);
         if ($apenasConsulta) {
             return redirect()->route('orcamentos.edit', $orcamento)
-                ->with('warning', 'Orçamento aceite ou em fase posterior não pode ser editado. Use apenas consulta ou impressão.');
+                ->with('warning', 'Orçamento enviado ou em fase posterior não pode ser editado. Use apenas consulta ou impressão.');
         }
 
         $validator = Validator::make($request->all(), [

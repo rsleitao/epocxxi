@@ -15,7 +15,7 @@
         'concelho' => $i->concelho?->nome,
         'freguesia' => $i->freguesia?->nome,
     ])->toArray();
-    $modoInicial = old('id_processo', $orcamento?->id_processo) ? 'processo_existente' : (!empty(array_filter(old('novo_imovel', []))) ? 'novo' : 'existente');
+    $modoInicial = old('id_processo', $orcamento?->id_processo) ? 'processo_existente' : (!empty(array_filter(old('novo_imovel', []))) ? 'novo' : ($orcamento ? 'existente' : 'novo'));
     $processosDetalhes = $processos->keyBy('id')->map(fn ($p) => $p->imovel ? [
         'referencia' => $p->referencia,
         'morada' => $p->imovel->morada,
@@ -36,15 +36,20 @@
             <input type="radio" name="imovel_modo" value="processo_existente" x-model="modo" class="text-epoc-primary focus:ring-epoc-primary">
             <span class="text-sm font-medium text-gray-700">Processo existente</span>
         </label>
+        @if ($orcamento)
         <label class="inline-flex items-center gap-2 cursor-pointer">
             <input type="radio" name="imovel_modo" value="existente" x-model="modo" class="text-epoc-primary focus:ring-epoc-primary">
             <span class="text-sm font-medium text-gray-700">Imóvel existente</span>
         </label>
+        @endif
         <label class="inline-flex items-center gap-2 cursor-pointer">
             <input type="radio" name="imovel_modo" value="novo" x-model="modo" class="text-epoc-primary focus:ring-epoc-primary">
-            <span class="text-sm font-medium text-gray-700">Criar novo imóvel</span>
+            <span class="text-sm font-medium text-gray-700">{{ $orcamento ? 'Criar novo imóvel' : 'Novo imóvel' }}</span>
         </label>
     </div>
+    @if (!$orcamento)
+    <p class="text-xs text-gray-500 mb-2">Se o imóvel já existir, escolha o processo existente. Caso contrário, crie um novo imóvel.</p>
+    @endif
     @endif
 
     {{-- Processo existente (dropdown) — carrega imóvel do processo --}}
@@ -79,8 +84,8 @@
     </div>
     @endif
 
-    {{-- Imóvel existente (dropdown) --}}
-    @if (!$readonly)
+    {{-- Imóvel existente (dropdown) — apenas na edição --}}
+    @if (!$readonly && $orcamento)
     <div x-show="modo === 'existente'" x-cloak class="mb-4">
         <x-input-label for="id_imovel" value="Imóvel" />
         <select id="id_imovel" name="id_imovel" class="mt-1 block w-full border-gray-300 focus:border-epoc-primary focus:ring-epoc-primary rounded-md shadow-sm"
@@ -120,7 +125,7 @@
             <div><dt class="text-gray-500">Freguesia</dt><dd class="font-medium text-gray-900">{{ $orcamento->imovel->freguesia?->nome ?? '—' }}</dd></div>
         </dl>
     </div>
-    @elseif (!$readonly)
+    @elseif (!$readonly && $orcamento)
     <div x-show="modo === 'existente' && id_imovel_selecionado && imoveisDetalhes[id_imovel_selecionado]" x-cloak class="mt-4 rounded-lg border border-gray-200 bg-white p-4 shadow-sm">
         <h4 class="text-sm font-medium text-gray-700 mb-3">Dados do imóvel selecionado</h4>
         <dl class="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2 text-sm">

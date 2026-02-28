@@ -1,5 +1,5 @@
 @php
-    $readonly = in_array($orcamento->status, ['aceite', 'em_execucao', 'por_faturar', 'faturado']);
+    $readonly = in_array($orcamento->status, ['enviado', 'aceite', 'em_execucao', 'por_faturar', 'faturado']);
 @endphp
 <x-app-layout>
     <x-slot name="header">
@@ -57,7 +57,7 @@
                         </div>
                     </div>
                 @else
-                    <form method="post" action="{{ route('orcamentos.update', $orcamento) }}" class="p-6">
+                    <form method="post" action="{{ route('orcamentos.update', $orcamento) }}" class="p-6" data-unsaved-warn>
                         @csrf
                         @method('PUT')
                         @include('orcamentos._form', ['orcamento' => $orcamento, 'readonly' => false])

@@ -127,7 +127,7 @@
                                         <td class="px-4 py-3 text-sm text-gray-600">{{ $orcamento->gabinete?->nome ?? '—' }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600">{{ $orcamento->subcontratado?->nome ?? '—' }}</td>
                                         <td class="px-4 py-3 text-sm text-right space-x-2">
-                                            <a href="{{ route('orcamentos.edit', $orcamento) }}" class="text-epoc-primary hover:text-epoc-primary-hover">{{ in_array($orcamento->status, ['aceite', 'em_execucao', 'por_faturar', 'faturado']) ? 'Ver' : 'Editar' }}</a>
+                                            <a href="{{ route('orcamentos.edit', $orcamento) }}" class="text-epoc-primary hover:text-epoc-primary-hover">{{ in_array($orcamento->status, ['enviado', 'aceite', 'em_execucao', 'por_faturar', 'faturado']) ? 'Ver' : 'Editar' }}</a>
                                             @if (in_array($orcamento->status, ['aceite', 'em_execucao', 'por_faturar', 'faturado']))
                                                 <a href="{{ route('orcamentos.report', $orcamento) }}" target="_blank" class="text-gray-600 hover:text-gray-900">Imprimir</a>
                                             @endif
