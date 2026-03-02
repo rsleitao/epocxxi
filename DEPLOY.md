@@ -29,23 +29,25 @@ Editar o `.env` com os valores do servidor:
 nano .env
 ```
 
+**Não copies o `.env` do teu PC para o servidor** — no servidor usa valores de produção.
+
 Alterar pelo menos:
 
 - `APP_NAME=EPOC`
 - `APP_ENV=production`
 - `APP_DEBUG=false`
-- `APP_URL=http://188.166.114.165` (ou o teu domínio, ex: `https://epoc.seudominio.com`)
+- `APP_URL=https://teu-dominio.com` (ou o IP, ex: `http://188.166.114.165`)
+- `APP_KEY=` → deve estar preenchido (corre `php artisan key:generate` se estiver vazio)
 
-**Base de dados:**
+**Base de dados (e driver PHP):**
 
-- **Opção A – SQLite** (mais simples, sem instalar MySQL):  
-  Manter `DB_CONNECTION=sqlite` e criar o ficheiro:
-  ```bash
-  touch database/database.sqlite
-  ```
+- **Opção A – SQLite** (mais simples, sem MySQL):  
+  - No `.env`: `DB_CONNECTION=sqlite` (e deixa comentadas as linhas DB_HOST, DB_DATABASE, etc.).
+  - Instalar o driver no servidor: `apt install -y php8.2-sqlite3` (ou `php8.1-sqlite3` conforme `php -v`). Depois: `systemctl restart php8.2-fpm`.
+  - Criar o ficheiro da base: `touch database/database.sqlite` e `chown www-data:www-data database/database.sqlite`.
 
 - **Opção B – MySQL**:  
-  Descomentar e preencher no `.env`:
+  - No `.env` descomentar e preencher:
   ```
   DB_CONNECTION=mysql
   DB_HOST=127.0.0.1
@@ -54,7 +56,8 @@ Alterar pelo menos:
   DB_USERNAME=epocxxi
   DB_PASSWORD=password_seguro
   ```
-  E criar a base de dados:
+  - Instalar o driver: `apt install -y php8.2-mysql` (ou php8.1-mysql). Depois: `systemctl restart php8.2-fpm`.
+  - Criar a base e utilizador:
   ```bash
   mysql -u root -p -e "CREATE DATABASE epocxxi; CREATE USER 'epocxxi'@'localhost' IDENTIFIED BY 'password_seguro'; GRANT ALL ON epocxxi.* TO 'epocxxi'@'localhost'; FLUSH PRIVILEGES;"
   ```
