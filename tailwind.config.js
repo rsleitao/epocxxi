@@ -12,6 +12,16 @@ export default {
     safelist: [
         { pattern: /^bg-(green|blue)-(700|800)$/ },
         { pattern: /^text-white$/ },
+        // Calendário dashboard: células dinâmicas
+        'bg-gray-50',
+        'bg-gray-100',
+        'bg-amber-200',
+        'bg-amber-300',
+        'text-gray-800',
+        'text-amber-900',
+        'hover:bg-amber-300',
+        'cursor-pointer',
+        'cursor-default',
     ],
 
     theme: {

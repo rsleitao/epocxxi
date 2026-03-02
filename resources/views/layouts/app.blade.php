@@ -20,6 +20,7 @@
             <script src="https://cdn.tailwindcss.com"></script>
             <script src="https://unpkg.com/alpinejs@3/dist/cdn.min.js" defer></script>
         @endif
+        @stack('scripts')
     </head>
     <body class="font-sans antialiased">
         <div class="min-h-screen bg-epoc-lighter/30">
