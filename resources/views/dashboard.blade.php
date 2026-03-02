@@ -1,4 +1,16 @@
 @php
+    $calendario = $calendario ?? [
+        'calendarioMes' => now()->format('Y-m'),
+        'daysInMonth' => now()->daysInMonth(),
+        'firstWeekday' => now()->copy()->startOfMonth()->isoWeekday() - 1,
+        'datasComTrabalhos' => [],
+        'mesAnoLabel' => now()->locale('pt')->translatedFormat('F Y'),
+        'mesPrev' => now()->copy()->subMonth()->format('Y-m'),
+        'mesNext' => now()->copy()->addMonth()->format('Y-m'),
+        'hoje' => now()->format('Y-m-d'),
+    ];
+    $trabalhosPorDataJson = $trabalhosPorDataJson ?? '{}';
+    $trabalhos = $trabalhos ?? collect();
     $calendarioJson = json_encode($calendario);
     $trabalhosJson = $trabalhosPorDataJson;
 @endphp
