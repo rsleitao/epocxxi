@@ -25,7 +25,7 @@
         <div class="min-h-screen flex flex-col sm:justify-center items-center pt-6 sm:pt-0 bg-gray-100">
             <div>
                 <a href="/">
-                    <img src="{{ asset('logo.png') }}" alt="EPOC" class="h-28 w-auto" />
+                    <img src="{{ asset('logo.png') }}" alt="EPOC" class="h-20 w-auto" style="max-height: 5rem; height: auto; width: auto;" />
                 </a>
             </div>
 
