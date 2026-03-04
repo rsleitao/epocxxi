@@ -30,10 +30,15 @@
                         <x-input-error :messages="$errors->get('nome')" class="mt-1" />
                     </div>
                     <div>
-                        <x-input-label for="ficheiro" value="Ficheiro Word (.docx) *" />
-                        <input type="file" id="ficheiro" name="ficheiro" accept=".docx" required
+                        <x-input-label for="ficheiro" value="Ficheiro de template (.docx ou .xlsx) *" />
+                        <input type="file" id="ficheiro" name="ficheiro" accept=".docx,.xlsx" required
                                class="mt-1 block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-epoc-lighter file:text-epoc-primary hover:file:bg-epoc-light">
-                        <p class="mt-1 text-xs text-gray-500">Use os placeholders no documento (ex: ${designacao}, ${total}). Para ver e copiar todos os campos, abra o tipo em <a href="{{ route('documento-tipos.index') }}" class="text-epoc-primary hover:text-epoc-primary-hover">Tipos de documento</a> → clique no tipo → tabela de placeholders.</p>
+                        <p class="mt-1 text-xs text-gray-500">
+                            Pode usar ficheiros Word (.docx) ou Excel (.xlsx) com placeholders (ex: ${designacao}, ${total}).
+                            Para ver e copiar todos os campos disponíveis, abra o tipo em
+                            <a href="{{ route('documento-tipos.index') }}" class="text-epoc-primary hover:text-epoc-primary-hover">Tipos de documento</a>
+                            → clique no tipo → tabela de placeholders.
+                        </p>
                         <x-input-error :messages="$errors->get('ficheiro')" class="mt-1" />
                     </div>
                     <div>

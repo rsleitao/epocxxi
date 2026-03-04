@@ -11,7 +11,16 @@ class RequerenteController extends Controller
 {
     public function index(Request $request): View
     {
+        if (! $request->user()->hasPermission('requerentes.view')) {
+            return redirect()->route('dashboard')
+                ->with('warning', 'Não tem permissão para ver Requerentes.');
+        }
+
         $query = Requerente::query()->orderBy('nome');
+
+        if (! $request->boolean('inativos')) {
+            $query->where('ativo', true);
+        }
 
         if ($request->filled('q')) {
             $q = $request->input('q');
@@ -29,11 +38,14 @@ class RequerenteController extends Controller
 
     public function create(): View
     {
+        abort_unless(auth()->user()->hasPermission('requerentes.create'), 403);
+
         return view('requerentes.create');
     }
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('requerentes.create'), 403);
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
             'nif' => 'nullable|string|max:20',
@@ -56,11 +68,13 @@ class RequerenteController extends Controller
 
     public function edit(Requerente $requerente): View
     {
+        abort_unless(auth()->user()->hasPermission('requerentes.edit'), 403);
         return view('requerentes.edit', compact('requerente'));
     }
 
     public function update(Request $request, Requerente $requerente): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('requerentes.edit'), 403);
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
             'nif' => 'nullable|string|max:20',
@@ -78,9 +92,11 @@ class RequerenteController extends Controller
 
     public function destroy(Requerente $requerente): RedirectResponse
     {
-        $requerente->delete();
+        abort_unless(auth()->user()->hasPermission('requerentes.delete'), 403);
 
-        return redirect()->route('requerentes.index')
-            ->with('success', 'Requerente eliminado.');
+        $requerente->ativo = ! $requerente->ativo;
+        $requerente->save();
+
+        return redirect()->route('requerentes.index');
     }
 }

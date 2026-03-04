@@ -4,10 +4,12 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 Serviços
             </h2>
-            <a href="{{ route('servicos.create') }}"
-               class="inline-flex items-center px-4 py-2 bg-epoc-primary border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-epoc-primary-hover">
-                Novo serviço
-            </a>
+            @if (auth()->user()->hasPermission('servicos.create'))
+                <a href="{{ route('servicos.create') }}"
+                   class="inline-flex items-center px-4 py-2 bg-epoc-primary border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-epoc-primary-hover">
+                    Novo serviço
+                </a>
+            @endif
         </div>
     </x-slot>
 
@@ -58,12 +60,18 @@
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 text-sm text-right space-x-2">
-                                        <a href="{{ route('servicos.edit', $servico) }}" class="text-epoc-primary hover:text-epoc-primary-hover">Editar</a>
-                                        <form action="{{ route('servicos.destroy', $servico) }}" method="post" class="inline" onsubmit="return confirm('Eliminar este serviço?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-900">Eliminar</button>
-                                        </form>
+                                        @if (auth()->user()->hasPermission('servicos.edit'))
+                                            <a href="{{ route('servicos.edit', $servico) }}" class="text-epoc-primary hover:text-epoc-primary-hover">Editar</a>
+                                        @endif
+                                        @if (auth()->user()->hasPermission('servicos.delete'))
+                                            <form action="{{ route('servicos.destroy', $servico) }}" method="post" class="inline" onsubmit="return confirm('{{ $servico->ativo ? 'Desativar' : 'Ativar' }} este serviço?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="{{ $servico->ativo ? 'text-red-600 hover:text-red-900' : 'text-emerald-600 hover:text-emerald-800' }}">
+                                                    {{ $servico->ativo ? 'Desativar' : 'Ativar' }}
+                                                </button>
+                                            </form>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty

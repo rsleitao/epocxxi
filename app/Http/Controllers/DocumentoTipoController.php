@@ -21,6 +21,10 @@ class DocumentoTipoController extends Controller
 
     public function index(Request $request): View
     {
+        if (! $request->user()->hasPermission('documento-tipos.view')) {
+            return redirect()->route('dashboard')
+                ->with('warning', 'Não tem permissão para ver Tipos de documento.');
+        }
         $query = DocumentoTipo::query()->withCount('templates')->orderBy('nome');
 
         if ($request->filled('q')) {
@@ -36,6 +40,7 @@ class DocumentoTipoController extends Controller
 
     public function create(): View|RedirectResponse
     {
+        abort_unless(auth()->user()->hasPermission('documento-tipos.create'), 403);
         if ($redirect = $this->ensureCrudEnabled()) {
             return $redirect;
         }
@@ -45,6 +50,7 @@ class DocumentoTipoController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('documento-tipos.create'), 403);
         if ($redirect = $this->ensureCrudEnabled()) {
             return $redirect;
         }
@@ -70,6 +76,7 @@ class DocumentoTipoController extends Controller
 
     public function edit(DocumentoTipo $documentoTipo): View|RedirectResponse
     {
+        abort_unless(auth()->user()->hasPermission('documento-tipos.edit'), 403);
         if ($redirect = $this->ensureCrudEnabled()) {
             return $redirect;
         }
@@ -79,6 +86,7 @@ class DocumentoTipoController extends Controller
 
     public function update(Request $request, DocumentoTipo $documentoTipo): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('documento-tipos.edit'), 403);
         if ($redirect = $this->ensureCrudEnabled()) {
             return $redirect;
         }
@@ -96,6 +104,7 @@ class DocumentoTipoController extends Controller
 
     public function destroy(DocumentoTipo $documentoTipo): RedirectResponse
     {
+        abort_unless(auth()->user()->hasPermission('documento-tipos.delete'), 403);
         if ($redirect = $this->ensureCrudEnabled()) {
             return $redirect;
         }

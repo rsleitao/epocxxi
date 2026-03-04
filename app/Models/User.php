@@ -27,6 +27,7 @@ class User extends Authenticatable
         'dgeg',
         'oet',
         'oe',
+        'role',
     ];
 
     /**
@@ -49,6 +50,32 @@ class User extends Authenticatable
         return [
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
+            'permissions' => 'array',
         ];
+    }
+
+    public function isAdmin(): bool
+    {
+        return $this->role === 'admin';
+    }
+
+    /**
+     * Conta admin protegida (por exemplo, o primeiro admin criado).
+     * Não deve ser apagada nem perder o papel de administrador.
+     */
+    public function isProtectedAdmin(): bool
+    {
+        return $this->role === 'admin' && $this->id === 1;
+    }
+
+    public function hasPermission(string $key): bool
+    {
+        if ($this->isAdmin()) {
+            return true;
+        }
+
+        $permissions = $this->permissions ?? [];
+
+        return ! empty($permissions[$key]);
     }
 }

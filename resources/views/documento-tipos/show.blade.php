@@ -21,31 +21,91 @@
                     <h3 class="text-sm font-medium text-gray-700">Campos disponíveis para este tipo</h3>
                     <p class="text-xs text-gray-500 mt-1">Use estes placeholders no seu documento Word. No ficheiro, escreva ex: <code>${designacao}</code> e o sistema substitui pelo valor ao gerar o documento. Ao gerar a partir de um orçamento (Editar orçamento → «Gerar documento (Word)»), pode escolher qual template usar nesta lista.</p>
                 </div>
-                <div class="p-4">
+                <div class="p-4 space-y-6">
                     @if (count($campos) > 0)
-                        <div class="overflow-x-auto">
-                            <table class="min-w-full divide-y divide-gray-200 text-sm">
-                                <thead class="bg-gray-50">
-                                    <tr>
-                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Placeholder</th>
-                                        <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
-                                        <th class="px-3 py-2 w-24"></th>
-                                    </tr>
-                                </thead>
-                                <tbody class="bg-white divide-y divide-gray-200">
-                                    @foreach ($campos as $chave => $descricao)
+                        @php
+                            $isPartes = $documentoTipo->slug === 'parteescritas';
+                        @endphp
+
+                        @if ($isPartes)
+                            @php
+                                $grupos = [
+                                    'Processo' => [],
+                                    'Requerente' => [],
+                                    'Gabinete' => [],
+                                    'Imóvel' => [],
+                                    'Utilizador' => [],
+                                ];
+                                foreach ($campos as $chave => $descricao) {
+                                    if (str_starts_with($chave, 'processo_')) {
+                                        $grupos['Processo'][$chave] = $descricao;
+                                    } elseif (str_starts_with($chave, 'requerente_')) {
+                                        $grupos['Requerente'][$chave] = $descricao;
+                                    } elseif (str_starts_with($chave, 'gabinete_')) {
+                                        $grupos['Gabinete'][$chave] = $descricao;
+                                    } elseif (str_starts_with($chave, 'imovel_')) {
+                                        $grupos['Imóvel'][$chave] = $descricao;
+                                    } elseif (str_starts_with($chave, 'utilizador_')) {
+                                        $grupos['Utilizador'][$chave] = $descricao;
+                                    }
+                                }
+                            @endphp
+
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                    <thead class="bg-gray-50">
                                         <tr>
-                                            <td class="px-3 py-2 font-mono text-gray-900">{{ \App\Services\DocumentoCamposService::placeholder($chave) }}</td>
-                                            <td class="px-3 py-2 text-gray-600">{{ $descricao }}</td>
-                                            <td class="px-3 py-2">
-                                                <button type="button" onclick="navigator.clipboard.writeText('{{ \App\Services\DocumentoCamposService::placeholder($chave) }}'); this.textContent='Copiado!'; setTimeout(() => this.textContent='Copiar', 1500)"
-                                                        class="text-xs text-epoc-primary hover:text-epoc-primary-hover">Copiar</button>
-                                            </td>
+                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Placeholder</th>
+                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
+                                            <th class="px-3 py-2 w-24"></th>
                                         </tr>
-                                    @endforeach
-                                </tbody>
-                            </table>
-                        </div>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        @foreach ($grupos as $titulo => $grupoCampos)
+                                            @if (count($grupoCampos) > 0)
+                                                <tr class="bg-gray-50">
+                                                    <td colspan="3" class="px-3 py-2 text-xs font-semibold text-gray-500 uppercase">{{ $titulo }}</td>
+                                                </tr>
+                                                @foreach ($grupoCampos as $chave => $descricao)
+                                                    <tr>
+                                                        <td class="px-3 py-2 font-mono text-gray-900">{{ \App\Services\DocumentoCamposService::placeholder($chave) }}</td>
+                                                        <td class="px-3 py-2 text-gray-600">{{ $descricao }}</td>
+                                                        <td class="px-3 py-2">
+                                                            <button type="button" onclick="navigator.clipboard.writeText('{{ \App\Services\DocumentoCamposService::placeholder($chave) }}'); this.textContent='Copiado!'; setTimeout(() => this.textContent='Copiar', 1500)"
+                                                                    class="text-xs text-epoc-primary hover:text-epoc-primary-hover">Copiar</button>
+                                                        </td>
+                                                    </tr>
+                                                @endforeach
+                                            @endif
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @else
+                            <div class="overflow-x-auto">
+                                <table class="min-w-full divide-y divide-gray-200 text-sm">
+                                    <thead class="bg-gray-50">
+                                        <tr>
+                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Placeholder</th>
+                                            <th class="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase">Descrição</th>
+                                            <th class="px-3 py-2 w-24"></th>
+                                        </tr>
+                                    </thead>
+                                    <tbody class="bg-white divide-y divide-gray-200">
+                                        @foreach ($campos as $chave => $descricao)
+                                            <tr>
+                                                <td class="px-3 py-2 font-mono text-gray-900">{{ \App\Services\DocumentoCamposService::placeholder($chave) }}</td>
+                                                <td class="px-3 py-2 text-gray-600">{{ $descricao }}</td>
+                                                <td class="px-3 py-2">
+                                                    <button type="button" onclick="navigator.clipboard.writeText('{{ \App\Services\DocumentoCamposService::placeholder($chave) }}'); this.textContent='Copiado!'; setTimeout(() => this.textContent='Copiar', 1500)"
+                                                            class="text-xs text-epoc-primary hover:text-epoc-primary-hover">Copiar</button>
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
                     @else
                         <p class="text-sm text-gray-500">Não há campos definidos para o slug <code>{{ $documentoTipo->slug }}</code>. Adicione-os em <code>DocumentoCamposService</code>.</p>
                     @endif

@@ -4,10 +4,12 @@
             <h2 class="font-semibold text-xl text-gray-800 leading-tight">
                 Gabinetes
             </h2>
-            <a href="{{ route('gabinetes.create') }}"
-               class="inline-flex items-center px-4 py-2 bg-epoc-primary border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-epoc-primary-hover">
-                Novo gabinete
-            </a>
+            @if (auth()->user()->hasPermission('gabinetes.create'))
+                <a href="{{ route('gabinetes.create') }}"
+                   class="inline-flex items-center px-4 py-2 bg-epoc-primary border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-epoc-primary-hover">
+                    Novo gabinete
+                </a>
+            @endif
         </div>
     </x-slot>
 
@@ -15,14 +17,20 @@
         <div class="max-w-7xl mx-auto sm:px-6 lg:px-8">
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-4 border-b border-gray-200">
-                    <form method="get" action="{{ route('gabinetes.index') }}" class="flex gap-2 flex-wrap">
+                    <form method="get" action="{{ route('gabinetes.index') }}" class="flex gap-2 flex-wrap items-center">
                         <input type="search" name="q" value="{{ request('q') }}"
                                placeholder="Nome, NIF ou email..."
                                class="rounded-md border-gray-300 shadow-sm focus:border-epoc-primary focus:ring-epoc-primary w-64">
                         <button type="submit" class="px-4 py-2 bg-gray-200 rounded-md text-sm font-medium hover:bg-gray-300">
                             Pesquisar
                         </button>
-                        @if (request('q'))
+                        <label class="inline-flex items-center gap-1.5 text-sm text-gray-700">
+                            <input type="checkbox" name="inativos" value="1" {{ request('inativos') ? 'checked' : '' }}
+                                   onchange="this.form.submit()"
+                                   class="rounded border-gray-300 text-epoc-primary focus:ring-epoc-primary">
+                            Incluir inativos
+                        </label>
+                        @if (request('q') || request('inativos'))
                             <a href="{{ route('gabinetes.index') }}" class="px-4 py-2 text-gray-600 text-sm hover:underline">
                                 Limpar
                             </a>
@@ -38,6 +46,7 @@
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">NIF</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Email</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Telefone</th>
+                                <th class="px-4 py-2 text-center text-xs font-medium text-gray-500 uppercase">Ativo</th>
                                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
                             </tr>
                         </thead>
@@ -49,18 +58,31 @@
                                     <td class="px-4 py-3 text-sm text-gray-500">{{ $gabinete->nif ?? '—' }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-500">{{ $gabinete->email ?? '—' }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-500">{{ $gabinete->telefone ?? '—' }}</td>
+                                    <td class="px-4 py-3 text-sm text-center">
+                                        @if ($gabinete->ativo)
+                                            <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-green-100 text-green-800">Sim</span>
+                                        @else
+                                            <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-600">Não</span>
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-3 text-sm text-right space-x-2">
-                                        <a href="{{ route('gabinetes.edit', $gabinete) }}" class="text-epoc-primary hover:text-epoc-primary-hover">Editar</a>
-                                        <form action="{{ route('gabinetes.destroy', $gabinete) }}" method="post" class="inline" onsubmit="return confirm('Eliminar este gabinete?');">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="text-red-600 hover:text-red-900">Eliminar</button>
-                                        </form>
+                                        @if (auth()->user()->hasPermission('gabinetes.edit'))
+                                            <a href="{{ route('gabinetes.edit', $gabinete) }}" class="text-epoc-primary hover:text-epoc-primary-hover">Editar</a>
+                                        @endif
+                                        @if (auth()->user()->hasPermission('gabinetes.delete'))
+                                            <form action="{{ route('gabinetes.destroy', $gabinete) }}" method="post" class="inline" onsubmit="return confirm('{{ $gabinete->ativo ? 'Desativar' : 'Ativar' }} este gabinete?');">
+                                                @csrf
+                                                @method('DELETE')
+                                                <button type="submit" class="{{ $gabinete->ativo ? 'text-red-600 hover:text-red-900' : 'text-emerald-600 hover:text-emerald-800' }}">
+                                                    {{ $gabinete->ativo ? 'Desativar' : 'Ativar' }}
+                                                </button>
+                                            </form>
+                                        @endif
                                     </td>
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="6" class="px-4 py-8 text-center text-gray-500">
+                                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">
                                         Nenhum gabinete encontrado.
                                     </td>
                                 </tr>

@@ -11,6 +11,10 @@ class TipoImovelController extends Controller
 {
     public function index(Request $request): View
     {
+        if (! $request->user()->hasPermission('tipo-imoveis.view')) {
+            return redirect()->route('dashboard')
+                ->with('warning', 'Não tem permissão para ver Tipos de imóvel.');
+        }
         $query = TipoImovel::query()->orderBy('tipo_imovel');
 
         if ($request->filled('q')) {
@@ -28,11 +32,13 @@ class TipoImovelController extends Controller
 
     public function create(): View
     {
+        abort_unless(auth()->user()->hasPermission('tipo-imoveis.create'), 403);
         return view('tipo-imoveis.create');
     }
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('tipo-imoveis.create'), 403);
         $validated = $request->validate([
             'tipo_imovel' => 'required|string|max:255',
             'descricao' => 'nullable|string|max:2000',
@@ -51,11 +57,13 @@ class TipoImovelController extends Controller
 
     public function edit(TipoImovel $tipoImovel): View
     {
+        abort_unless(auth()->user()->hasPermission('tipo-imoveis.edit'), 403);
         return view('tipo-imoveis.edit', compact('tipoImovel'));
     }
 
     public function update(Request $request, TipoImovel $tipoImovel): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('tipo-imoveis.edit'), 403);
         $validated = $request->validate([
             'tipo_imovel' => 'required|string|max:255',
             'descricao' => 'nullable|string|max:2000',
@@ -69,6 +77,8 @@ class TipoImovelController extends Controller
 
     public function destroy(TipoImovel $tipoImovel): RedirectResponse
     {
+        abort_unless(auth()->user()->hasPermission('tipo-imoveis.delete'), 403);
+
         $tipoImovel->delete();
 
         return redirect()->route('tipo-imoveis.index')

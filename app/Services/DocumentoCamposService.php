@@ -11,8 +11,10 @@ class DocumentoCamposService
     public static function getCamposPorSlug(string $slug): array
     {
         return match ($slug) {
-            'orcamento' => self::camposOrcamento(),
-            default => [],
+            'orcamento'      => self::camposOrcamento(),
+            // slug "parteescritas" (como criaste no tipo de documento)
+            'parteescritas'  => self::camposParteescritas(),
+            default          => [],
         };
     }
 
@@ -66,6 +68,61 @@ class DocumentoCamposService
             'linha_quantidade_exec' => '(Tabela Execução) Quantidade',
             'linha_iva_exec' => '(Tabela Execução) IVA',
             'linha_total_exec' => '(Tabela Execução) Total',
+        ];
+    }
+
+    /**
+     * Campos disponíveis para o tipo "Partes Escritas".
+     * Reutiliza todos os campos de orçamento e acrescenta alguns de processo/utilizador.
+     *
+     * @return array<string, string>
+     */
+    private static function camposParteescritas(): array
+    {
+        return [
+            // Processo
+            'processo_numero'        => 'Número interno do processo',
+            'processo_data_abertura' => 'Data de abertura do processo',
+            'processo_estado'        => 'Estado atual do processo',
+            'processo_observacoes'   => 'Observações internas do processo',
+
+            // Requerente (cliente)
+            'requerente_nome'            => 'Nome do requerente',
+            'requerente_nif'             => 'NIF do requerente',
+            'requerente_morada'          => 'Morada do requerente',
+            'requerente_codigo_postal'   => 'Código postal do requerente',
+            'requerente_email'           => 'Email do requerente',
+            'requerente_telefone'        => 'Telefone do requerente',
+            'requerente_fatura_nome'     => 'Nome a quem faturar',
+
+            // Gabinete
+            'gabinete_nome'              => 'Nome do gabinete',
+            'gabinete_nif'               => 'NIF do gabinete',
+            'gabinete_morada'            => 'Morada do gabinete',
+            'gabinete_codigo_postal'     => 'Código postal do gabinete',
+            'gabinete_email'             => 'Email do gabinete',
+            'gabinete_telefone'          => 'Telefone do gabinete',
+
+            // Imóvel
+            'imovel_tipo'                => 'Tipo de imóvel',
+            'imovel_morada'              => 'Morada do imóvel',
+            'imovel_morada_completa'     => 'Morada completa (morada + código postal + localidade)',
+            'imovel_nip'                 => 'NIP do imóvel',
+            'imovel_codigo_postal'       => 'Código postal do imóvel',
+            'imovel_localidade'          => 'Localidade do imóvel',
+            'imovel_distrito'            => 'Distrito do imóvel',
+            'imovel_concelho'            => 'Concelho do imóvel',
+            'imovel_freguesia'           => 'Freguesia do imóvel',
+            'imovel_coordenadas'         => 'Coordenadas do imóvel',
+
+            // Utilizador (quem gera o documento)
+            'utilizador_nome'            => 'Nome do utilizador que gera o documento',
+            'utilizador_email'           => 'Email do utilizador que gera o documento',
+            'utilizador_cc'              => 'Número do cartão de cidadão do utilizador',
+            'utilizador_nif'             => 'NIF do utilizador',
+            'utilizador_dgeg'            => 'Número DGEG do utilizador',
+            'utilizador_oet'             => 'Número OET do utilizador',
+            'utilizador_oe'              => 'Número OE do utilizador',
         ];
     }
 

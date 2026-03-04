@@ -9,6 +9,6 @@ class Gabinete extends Model
     protected $table = 'gabinetes';
 
     protected $fillable = [
-        'nif', 'nome', 'morada', 'codigo_postal', 'email', 'telefone',
+        'nif', 'nome', 'morada', 'codigo_postal', 'email', 'telefone', 'ativo',
     ];
 }

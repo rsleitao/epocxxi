@@ -57,7 +57,7 @@
                         Lista
                     </a>
                     <a href="{{ route('orcamentos.index', array_merge(request()->only(['id_gabinete', 'q', 'ordenar']), ['view' => 'kanban'])) }}"
-                       class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-900 shadow border border-gray-200">
+                       class="px-3 py-1.5 text-sm font-medium rounded-md bg-epoc-primary text-white hover:bg-epoc-primary-hover">
                         Kanban
                     </a>
                 </nav>

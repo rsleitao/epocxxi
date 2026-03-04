@@ -17,6 +17,10 @@ class TemplateController extends Controller
 {
     public function index(Request $request): View
     {
+        if (! $request->user()->hasPermission('templates.view')) {
+            return redirect()->route('dashboard')
+                ->with('warning', 'Não tem permissão para ver Templates.');
+        }
         $query = Template::query()->with('documentoTipo')->orderBy('nome');
 
         if ($request->filled('id_documento_tipo')) {
@@ -36,6 +40,7 @@ class TemplateController extends Controller
 
     public function create(Request $request): View
     {
+        abort_unless($request->user()->hasPermission('templates.create'), 403);
         $tipos = DocumentoTipo::orderBy('nome')->get();
         $tipoPreSelected = $request->filled('id_documento_tipo')
             ? DocumentoTipo::find($request->input('id_documento_tipo'))
@@ -46,15 +51,21 @@ class TemplateController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('templates.create'), 403);
         $validated = $request->validate([
             'id_documento_tipo' => 'required|exists:documento_tipos,id',
             'nome' => 'required|string|max:255',
-            'ficheiro' => 'required|file|mimes:docx|max:10240',
+            // Suporta Word (.docx) e Excel (.xlsx)
+            'ficheiro' => 'required|file|mimes:docx,xlsx|max:10240',
             'is_predefinido' => 'nullable|boolean',
         ]);
 
         $file = $request->file('ficheiro');
-        $nomeUnico = uniqid('tpl_') . '.docx';
+        $ext = strtolower($file->getClientOriginalExtension() ?: 'docx');
+        if (! in_array($ext, ['docx', 'xlsx'], true)) {
+            $ext = 'docx';
+        }
+        $nomeUnico = uniqid('tpl_') . '.' . $ext;
         Storage::disk('local')->makeDirectory('templates');
         $path = $file->storeAs('templates', $nomeUnico, 'local');
 
@@ -78,6 +89,7 @@ class TemplateController extends Controller
 
     public function edit(Template $template): View
     {
+        abort_unless(auth()->user()->hasPermission('templates.edit'), 403);
         $template->load('documentoTipo');
         $tipos = DocumentoTipo::orderBy('nome')->get();
 
@@ -86,16 +98,21 @@ class TemplateController extends Controller
 
     public function update(Request $request, Template $template): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('templates.edit'), 403);
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
-            'ficheiro' => 'nullable|file|mimes:docx|max:10240',
+            'ficheiro' => 'nullable|file|mimes:docx,xlsx|max:10240',
             'is_predefinido' => 'nullable|boolean',
         ]);
 
         if ($request->hasFile('ficheiro')) {
             Storage::disk('local')->delete('templates/' . $template->ficheiro);
             $file = $request->file('ficheiro');
-            $nomeUnico = uniqid('tpl_') . '.docx';
+            $ext = strtolower($file->getClientOriginalExtension() ?: 'docx');
+            if (! in_array($ext, ['docx', 'xlsx'], true)) {
+                $ext = 'docx';
+            }
+            $nomeUnico = uniqid('tpl_') . '.' . $ext;
             Storage::disk('local')->makeDirectory('templates');
             $file->storeAs('templates', $nomeUnico, 'local');
             $template->ficheiro = $nomeUnico;
@@ -119,6 +136,7 @@ class TemplateController extends Controller
 
     public function destroy(Template $template): RedirectResponse
     {
+        abort_unless(auth()->user()->hasPermission('templates.delete'), 403);
         Storage::disk('local')->delete('templates/' . $template->ficheiro);
         $template->delete();
 
@@ -142,9 +160,24 @@ class TemplateController extends Controller
         }
 
         $dados = DocumentoDadosService::buildData('orcamento', $orcamento);
-        $gerador = app(DocumentoGeradorService::class);
-        $nomeFicheiro = 'orcamento-' . $orcamento->id . '-' . Str::slug($template->nome) . '.docx';
+        $ext = strtolower(pathinfo($template->ficheiro, PATHINFO_EXTENSION));
+        $slugSafeNome = Str::slug($template->nome);
 
-        return $gerador->download($template, $dados, $nomeFicheiro);
+        if ($ext === 'docx') {
+            $gerador = app(DocumentoGeradorService::class);
+            $nomeFicheiro = 'orcamento-' . $orcamento->id . '-' . $slugSafeNome . '.docx';
+
+            return $gerador->download($template, $dados, $nomeFicheiro);
+        }
+
+        if ($ext === 'xlsx') {
+            $geradorExcel = app(\App\Services\DocumentoGeradorExcelService::class);
+            $nomeFicheiro = 'orcamento-' . $orcamento->id . '-' . $slugSafeNome . '.xlsx';
+
+            return $geradorExcel->download($template, $dados, $nomeFicheiro);
+        }
+
+        return redirect()->route('orcamentos.edit', $orcamento)
+            ->with('error', 'Tipo de ficheiro não suportado. Use .docx ou .xlsx.');
     }
 }

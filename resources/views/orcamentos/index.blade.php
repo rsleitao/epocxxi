@@ -7,7 +7,7 @@
                 </h2>
                 <nav class="flex rounded-lg border border-gray-300 p-0.5 bg-gray-100" aria-label="Vista">
                     <a href="{{ route('orcamentos.index', request()->only(['status', 'id_gabinete', 'q'])) }}"
-                       class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-900 shadow border border-gray-200">
+                       class="px-3 py-1.5 text-sm font-medium rounded-md bg-epoc-primary text-white hover:bg-epoc-primary-hover">
                         Lista
                     </a>
                     <a href="{{ route('orcamentos.index', array_merge(request()->only(['status', 'id_gabinete', 'q']), ['view' => 'kanban'])) }}"
@@ -16,10 +16,12 @@
                     </a>
                 </nav>
             </div>
-            <a href="{{ route('orcamentos.create') }}"
-               class="inline-flex items-center px-4 py-2 bg-epoc-primary border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-epoc-primary-hover">
-                Novo orçamento
-            </a>
+            @if (auth()->user()->hasPermission('orcamentos.create'))
+                <a href="{{ route('orcamentos.create') }}"
+                   class="inline-flex items-center px-4 py-2 bg-epoc-primary border border-transparent rounded-md font-semibold text-xs text-white uppercase tracking-widest hover:bg-epoc-primary-hover">
+                    Novo orçamento
+                </a>
+            @endif
         </div>
     </x-slot>
 

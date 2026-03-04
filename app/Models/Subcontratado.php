@@ -9,6 +9,6 @@ class Subcontratado extends Model
     protected $table = 'subcontratados';
 
     protected $fillable = [
-        'nif', 'nome', 'morada', 'codigo_postal', 'email', 'telefone',
+        'nif', 'nome', 'morada', 'codigo_postal', 'email', 'telefone', 'ativo',
     ];
 }

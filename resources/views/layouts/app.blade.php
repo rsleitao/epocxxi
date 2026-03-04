@@ -20,10 +20,13 @@
             <script src="https://cdn.tailwindcss.com"></script>
             <script src="https://unpkg.com/alpinejs@3/dist/cdn.min.js" defer></script>
         @endif
+
+        {{-- Esconde elementos com x-cloak até o Alpine iniciar (evita "flash" de modais, etc.) --}}
+        <style>[x-cloak] { display: none !important; }</style>
         @stack('scripts')
     </head>
     <body class="font-sans antialiased">
-        <div class="min-h-screen bg-epoc-lighter/30">
+        <div class="min-h-screen bg-gray-900">
             @include('layouts.navigation')
 
             <!-- Page Heading -->

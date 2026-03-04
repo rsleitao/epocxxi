@@ -11,7 +11,12 @@ class ServicoController extends Controller
 {
     public function index(Request $request): View
     {
-        $query = Servico::query()->orderBy('nome');
+        if (! $request->user()->hasPermission('servicos.view')) {
+            return redirect()->route('dashboard')
+                ->with('warning', 'Não tem permissão para ver Serviços.');
+        }
+        $query = Servico::query()
+            ->orderBy('nome');
 
         if ($request->filled('q')) {
             $q = $request->input('q');
@@ -28,11 +33,13 @@ class ServicoController extends Controller
 
     public function create(): View
     {
+        abort_unless(auth()->user()->hasPermission('servicos.create'), 403);
         return view('servicos.create');
     }
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('servicos.create'), 403);
         $validated = $request->validate([
             'codigo' => 'nullable|string|max:50',
             'nome' => 'required|string|max:255',
@@ -58,11 +65,13 @@ class ServicoController extends Controller
 
     public function edit(Servico $servico): View
     {
+        abort_unless(auth()->user()->hasPermission('servicos.edit'), 403);
         return view('servicos.edit', compact('servico'));
     }
 
     public function update(Request $request, Servico $servico): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('servicos.edit'), 403);
         $validated = $request->validate([
             'codigo' => 'nullable|string|max:50',
             'nome' => 'required|string|max:255',
@@ -83,9 +92,12 @@ class ServicoController extends Controller
 
     public function destroy(Servico $servico): RedirectResponse
     {
-        $servico->delete();
+        abort_unless(auth()->user()->hasPermission('servicos.delete'), 403);
+
+        $servico->ativo = ! $servico->ativo;
+        $servico->save();
 
         return redirect()->route('servicos.index')
-            ->with('success', 'Serviço eliminado.');
+            ->with('success', 'Serviço ' . ($servico->ativo ? 'ativado.' : 'desativado.'));
     }
 }

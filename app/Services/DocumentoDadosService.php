@@ -3,6 +3,7 @@
 namespace App\Services;
 
 use App\Models\Orcamento;
+use App\Models\Processo;
 
 /**
  * Constrói o array de dados (placeholder => valor) para preencher templates
@@ -16,8 +17,9 @@ class DocumentoDadosService
     public static function buildData(string $slug, mixed $entidade): array
     {
         return match ($slug) {
-            'orcamento' => self::dadosOrcamento($entidade),
-            default => [],
+            'orcamento'     => self::dadosOrcamento($entidade),
+            'parteescritas' => self::dadosParteescritas($entidade),
+            default         => [],
         };
     }
 
@@ -105,6 +107,93 @@ class DocumentoDadosService
             'linhas_licenciamento_rows' => $linhasLicenciamentoRows,
             'linhas_execucao_rows' => $linhasExecucaoRows,
         ];
+    }
+
+    /**
+     * Dados para o tipo "Partes Escritas", a partir de um Processo.
+     *
+     * @return array<string, mixed>
+     */
+    private static function dadosParteescritas(Processo $processo): array
+    {
+        $processo->loadMissing([
+            'requerente',
+            'imovel.distrito',
+            'imovel.concelho',
+            'imovel.freguesia',
+            'imovel.tipoImovel',
+            'orcamentos.requerente',
+            'orcamentos.requerenteFatura',
+            'orcamentos.gabinete',
+            'orcamentos.imovel',
+        ]);
+
+        // Usa o último orçamento associado (se existir) para preencher dados de cliente/gabinete/imóvel.
+        $orcamento = $processo->orcamentos->sortByDesc('created_at')->first();
+
+        $dados = [
+            // Processo
+            'processo_numero'        => $processo->referencia ?? (string) $processo->id,
+            'processo_data_abertura' => $processo->created_at?->format('d/m/Y') ?? '—',
+            'processo_estado'        => '', // ainda não tens estado no modelo
+            'processo_observacoes'   => '', // idem; podes ligar mais tarde a um campo
+
+            // Utilizador (quem gera o documento)
+            'utilizador_nome'        => auth()->user()?->name ?? '—',
+            'utilizador_email'       => auth()->user()?->email ?? '—',
+            'utilizador_cc'          => auth()->user()?->cc ?? '—',
+            'utilizador_nif'         => auth()->user()?->nif ?? '—',
+            'utilizador_dgeg'        => auth()->user()?->dgeg ?? '—',
+            'utilizador_oet'         => auth()->user()?->oet ?? '—',
+            'utilizador_oe'          => auth()->user()?->oe ?? '—',
+        ];
+
+        // Requerente / Gabinete / Imóvel a partir do orçamento (se existir),
+        // senão cai para os dados diretos do processo (requerente, imovel).
+        if ($orcamento instanceof Orcamento) {
+            $req = $orcamento->requerente;
+            $reqFatura = $orcamento->requerenteFatura ?? $req;
+            $gab = $orcamento->gabinete;
+            $imovel = $orcamento->imovel;
+        } else {
+            $req = $processo->requerente;
+            $reqFatura = $processo->requerente;
+            $gab = null;
+            $imovel = $processo->imovel;
+        }
+
+        $dados = array_merge($dados, [
+            // Requerente
+            'requerente_nome'            => $req?->nome ?? '—',
+            'requerente_nif'             => $req?->nif ?? '—',
+            'requerente_morada'          => $req?->morada ?? '—',
+            'requerente_codigo_postal'   => $req?->codigo_postal ?? '—',
+            'requerente_email'           => $req?->email ?? '—',
+            'requerente_telefone'        => $req?->telefone ?? '—',
+            'requerente_fatura_nome'     => $reqFatura?->nome ?? $req?->nome ?? '—',
+
+            // Gabinete
+            'gabinete_nome'              => $gab?->nome ?? '—',
+            'gabinete_nif'               => $gab?->nif ?? '—',
+            'gabinete_morada'            => $gab?->morada ?? '—',
+            'gabinete_codigo_postal'     => $gab?->codigo_postal ?? '—',
+            'gabinete_email'             => $gab?->email ?? '—',
+            'gabinete_telefone'          => $gab?->telefone ?? '—',
+
+            // Imóvel
+            'imovel_tipo'                => $imovel?->tipoImovel?->tipo_imovel ?? '—',
+            'imovel_morada'              => $imovel?->morada ?? '—',
+            'imovel_morada_completa'     => self::moradaCompleta($imovel?->morada, $imovel?->codigo_postal, $imovel?->localidade),
+            'imovel_nip'                 => $imovel?->nip ?? '—',
+            'imovel_codigo_postal'       => $imovel?->codigo_postal ?? '—',
+            'imovel_localidade'          => $imovel?->localidade ?? '—',
+            'imovel_distrito'            => $imovel?->distrito?->nome ?? '—',
+            'imovel_concelho'            => $imovel?->concelho?->nome ?? '—',
+            'imovel_freguesia'           => $imovel?->freguesia?->nome ?? '—',
+            'imovel_coordenadas'         => $imovel?->coordenadas ?? '—',
+        ]);
+
+        return $dados;
     }
 
     /**

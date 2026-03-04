@@ -90,6 +90,7 @@
                                 </template>
                             </div>
                             <div class="mt-3 flex flex-wrap gap-3 text-xs text-gray-500">
+                                <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: #fee2e2; border: 1px solid #b91c1c;"></span> Trabalhos em atraso</span>
                                 <span class="flex items-center gap-1"><span class="w-3 h-3 rounded-full" style="background-color: #2D647A;"></span> Com trabalhos</span>
                                 <span class="flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span> Hoje</span>
                             </div>
@@ -171,6 +172,12 @@
                     if (!dataStr) return { backgroundColor: '#f9fafb', color: '#111827', cursor: 'default' };
                     const comTrabalhos = Array.isArray(this.datasComTrabalhos) && this.datasComTrabalhos.includes(dataStr);
                     const fimSemana = this.isFimDeSemana(dataStr);
+                    const hojeStr = String(this.hoje || '').split('T')[0];
+                    const emAtraso = comTrabalhos && hojeStr && dataStr < hojeStr;
+                    if (emAtraso) {
+                        // Dia com trabalhos cujo prazo já passou: realce em vermelho suave
+                        return { backgroundColor: '#fee2e2', color: '#b91c1c', cursor: 'pointer', fontWeight: 600 };
+                    }
                     if (comTrabalhos) return { backgroundColor: '#AECAD9', color: '#2D647A', cursor: 'pointer' };
                     if (fimSemana) return { backgroundColor: '#e2e8f0', color: '#1e293b', cursor: 'default' };
                     return { backgroundColor: '#f9fafb', color: '#1f2937', cursor: 'default' };

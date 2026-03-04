@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\GeoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DocumentoTipoController;
 use App\Http\Controllers\GabineteController;
+use App\Http\Controllers\GestaoController;
 use App\Http\Controllers\OrcamentoController;
 use App\Http\Controllers\ProcessoController;
 use App\Http\Controllers\ProfileController;
@@ -12,6 +13,7 @@ use App\Http\Controllers\ServicoController;
 use App\Http\Controllers\SubcontratadoController;
 use App\Http\Controllers\TemplateController;
 use App\Http\Controllers\TrabalhosController;
+use App\Http\Controllers\UserController;
 use App\Http\Controllers\TipoImovelController;
 use Illuminate\Support\Facades\Route;
 
@@ -37,13 +39,16 @@ Route::middleware('auth')->group(function () {
     Route::resource('orcamentos', OrcamentoController::class);
     Route::get('processos', [ProcessoController::class, 'index'])->name('processos.index');
     Route::get('processos/{processo}', [ProcessoController::class, 'show'])->name('processos.show');
+    Route::post('processos/{processo}/documentos/parteescritas', [ProcessoController::class, 'gerarPartesEscritas'])->name('processos.documentos.parteescritas');
     Route::get('trabalhos', [TrabalhosController::class, 'index'])->name('trabalhos.index');
     Route::patch('trabalhos/{item}/concluido', [TrabalhosController::class, 'markConcluido'])->name('trabalhos.mark-concluido');
+    Route::get('gestao', GestaoController::class)->name('gestao.index');
     Route::get('orcamentos/{orcamento}/report', [OrcamentoController::class, 'report'])->name('orcamentos.report');
     Route::get('orcamentos/{orcamento}/gerar-documento/{template}', [TemplateController::class, 'gerarOrcamento'])->name('orcamentos.gerar-documento');
 
     Route::resource('documento-tipos', DocumentoTipoController::class)->parameters(['documento-tipos' => 'documentoTipo']);
     Route::resource('templates', TemplateController::class);
+    Route::resource('users', UserController::class)->middleware('admin')->except(['show']);
 
     Route::get('api/distritos/{distrito}/concelhos', [GeoController::class, 'concelhos'])->name('api.distritos.concelhos');
     Route::get('api/concelhos/{concelho}/freguesias', [GeoController::class, 'freguesias'])->name('api.concelhos.freguesias');

@@ -7,7 +7,7 @@
                 </h2>
                 <nav class="flex rounded-lg border border-gray-300 p-0.5 bg-gray-100" aria-label="Vista">
                     <a href="{{ route('trabalhos.index', request()->only(['concluido'])) }}"
-                       class="px-3 py-1.5 text-sm font-medium rounded-md bg-white text-gray-900 shadow border border-gray-200">
+                       class="px-3 py-1.5 text-sm font-medium rounded-md bg-epoc-primary text-white hover:bg-epoc-primary-hover">
                         Lista
                     </a>
                     <a href="{{ route('trabalhos.index', array_merge(request()->only(['concluido']), ['view' => 'kanban'])) }}"

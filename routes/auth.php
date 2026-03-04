@@ -10,11 +10,7 @@ use App\Http\Controllers\Auth\VerifyEmailController;
 use Illuminate\Support\Facades\Route;
 
 Route::middleware('guest')->group(function () {
-    Route::get('register', [RegisteredUserController::class, 'create'])
-        ->name('register');
-
-    Route::post('register', [RegisteredUserController::class, 'store']);
-
+    // Registo público desativado; criação de utilizadores é feita pelo administrador em /users.
     // Login e 2FA tratados pelo Laravel Fortify (ver FortifyServiceProvider)
 
     Route::get('forgot-password', [PasswordResetLinkController::class, 'create'])

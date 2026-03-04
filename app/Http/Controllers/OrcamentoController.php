@@ -26,6 +26,10 @@ class OrcamentoController extends Controller
 {
     public function index(Request $request): View
     {
+        if (! $request->user()->hasPermission('orcamentos.view')) {
+            return redirect()->route('dashboard')
+                ->with('warning', 'Não tem permissão para ver Orçamentos.');
+        }
         $ordenar = $request->input('ordenar', 'recente');
         $query = Orcamento::query()
             ->with(['requerente', 'imovel', 'gabinete'])
@@ -69,6 +73,7 @@ class OrcamentoController extends Controller
 
     public function create(): View
     {
+        abort_unless(auth()->user()->hasPermission('orcamentos.create'), 403);
         return view('orcamentos.create', [
             'requerentes' => Requerente::orderBy('nome')->get(),
             'gabinetes' => Gabinete::orderBy('nome')->get(),
@@ -83,6 +88,7 @@ class OrcamentoController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('orcamentos.create'), 403);
         $validator = Validator::make($request->all(), [
             'status' => 'required|string|in:rascunho,enviado',
             'id_requerente' => 'required|exists:requerentes,id',
@@ -153,6 +159,7 @@ class OrcamentoController extends Controller
 
     public function edit(Orcamento $orcamento): View
     {
+        abort_unless(auth()->user()->hasPermission('orcamentos.edit'), 403);
         $orcamento->load([
             'itens.servico',
             'imovel.tipoImovel', 'imovel.distrito', 'imovel.concelho', 'imovel.freguesia',
@@ -196,6 +203,7 @@ class OrcamentoController extends Controller
 
     public function update(Request $request, Orcamento $orcamento): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('orcamentos.edit'), 403);
         $apenasConsulta = in_array($orcamento->status, ['enviado', 'aceite', 'em_execucao', 'por_faturar', 'faturado'], true);
         if ($apenasConsulta) {
             return redirect()->route('orcamentos.edit', $orcamento)
@@ -300,6 +308,7 @@ class OrcamentoController extends Controller
 
     public function updateStatus(Request $request, Orcamento $orcamento): JsonResponse
     {
+        abort_unless($request->user()->hasPermission('orcamentos.edit'), 403);
         if ($orcamento->status === 'faturado') {
             return response()->json(['ok' => false, 'message' => 'Orçamento faturado não pode ser alterado.'], 422);
         }
@@ -368,6 +377,8 @@ class OrcamentoController extends Controller
 
     public function destroy(Request $request, Orcamento $orcamento): RedirectResponse|JsonResponse
     {
+        abort_unless($request->user()->hasPermission('orcamentos.delete'), 403);
+
         $orcamento->delete();
 
         if ($request->wantsJson()) {

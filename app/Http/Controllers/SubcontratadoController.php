@@ -11,7 +11,12 @@ class SubcontratadoController extends Controller
 {
     public function index(Request $request): View
     {
+        abort_unless($request->user()->hasPermission('subcontratados.view'), 403);
         $query = Subcontratado::query()->orderBy('nome');
+
+        if (! $request->boolean('inativos')) {
+            $query->where('ativo', true);
+        }
 
         if ($request->filled('q')) {
             $q = $request->input('q');
@@ -29,11 +34,13 @@ class SubcontratadoController extends Controller
 
     public function create(): View
     {
+        abort_unless(auth()->user()->hasPermission('subcontratados.create'), 403);
         return view('subcontratados.create');
     }
 
     public function store(Request $request): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('subcontratados.create'), 403);
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
             'nif' => 'nullable|string|max:20',
@@ -56,11 +63,13 @@ class SubcontratadoController extends Controller
 
     public function edit(Subcontratado $subcontratado): View
     {
+        abort_unless(auth()->user()->hasPermission('subcontratados.edit'), 403);
         return view('subcontratados.edit', compact('subcontratado'));
     }
 
     public function update(Request $request, Subcontratado $subcontratado): RedirectResponse
     {
+        abort_unless($request->user()->hasPermission('subcontratados.edit'), 403);
         $validated = $request->validate([
             'nome' => 'required|string|max:255',
             'nif' => 'nullable|string|max:20',
@@ -78,9 +87,11 @@ class SubcontratadoController extends Controller
 
     public function destroy(Subcontratado $subcontratado): RedirectResponse
     {
-        $subcontratado->delete();
+        abort_unless(auth()->user()->hasPermission('subcontratados.delete'), 403);
 
-        return redirect()->route('subcontratados.index')
-            ->with('success', 'Subcontratado eliminado.');
+        $subcontratado->ativo = ! $subcontratado->ativo;
+        $subcontratado->save();
+
+        return redirect()->route('subcontratados.index');
     }
 }

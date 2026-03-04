@@ -11,51 +11,38 @@
                 </div>
 
                 <!-- Navigation Links -->
-                <div class="hidden sm:flex sm:items-center sm:gap-1 sm:ms-10">
+                <div class="hidden sm:flex sm:items-center sm:gap-6 sm:ms-10">
+                    @php $user = auth()->user(); @endphp
+
                     {{-- Orçamentos (link direto) --}}
-                    <a href="{{ route('orcamentos.index') }}"
-                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out {{ request()->routeIs('orcamentos.*') ? 'border-epoc-primary text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                        Orçamentos
-                    </a>
+                    @if ($user && $user->hasPermission('orcamentos.view'))
+                        <a href="{{ route('orcamentos.index') }}"
+                           class="inline-flex items-center px-1 pt-1 border-b-2 text-base font-semibold leading-5 transition duration-150 ease-in-out {{ request()->routeIs('orcamentos.*') ? 'border-epoc-primary text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                            Orçamentos
+                        </a>
+                    @endif
 
                     {{-- Processos (link direto) --}}
-                    <a href="{{ route('processos.index') }}"
-                       class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 transition duration-150 ease-in-out {{ request()->routeIs('processos.*') ? 'border-epoc-primary text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                        Processos
+                    @if ($user && $user->hasPermission('processos.view'))
+                        <a href="{{ route('processos.index') }}"
+                           class="inline-flex items-center px-1 pt-1 border-b-2 text-base font-semibold leading-5 transition duration-150 ease-in-out {{ request()->routeIs('processos.*') ? 'border-epoc-primary text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                            Processos
+                        </a>
+                    @endif
+
+                    {{-- Trabalhos (link direto) --}}
+                    @if ($user && $user->hasPermission('trabalhos.view'))
+                        <a href="{{ route('trabalhos.index') }}"
+                           class="inline-flex items-center px-1 pt-1 border-b-2 text-base font-semibold leading-5 transition duration-150 ease-in-out {{ request()->routeIs('trabalhos.*') ? 'border-epoc-primary text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                            Trabalhos
+                        </a>
+                    @endif
+
+                    {{-- Gestão (link direto) --}}
+                    <a href="{{ route('gestao.index') }}"
+                       class="inline-flex items-center px-1 pt-1 border-b-2 text-base font-semibold leading-5 transition duration-150 ease-in-out {{ request()->routeIs('gestao.*', 'requerentes.*', 'gabinetes.*', 'subcontratados.*', 'tipo-imoveis.*', 'servicos.*', 'documento-tipos.*', 'templates.*') ? 'border-epoc-primary text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
+                        Gestão
                     </a>
-
-                    {{-- Trabalhos --}}
-                    <x-dropdown align="left" width="w-52" contentClasses="py-1">
-                        <x-slot name="trigger">
-                            <span class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 cursor-pointer transition duration-150 ease-in-out {{ request()->routeIs('trabalhos.*', 'servicos.*') ? 'border-epoc-primary text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                                Trabalhos
-                                <svg class="ms-0.5 h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-                            </span>
-                        </x-slot>
-                        <x-slot name="content">
-                            <x-dropdown-link :href="route('trabalhos.index')">Trabalhos</x-dropdown-link>
-                            <x-dropdown-link :href="route('servicos.index')">Serviços</x-dropdown-link>
-                        </x-slot>
-                    </x-dropdown>
-
-                    {{-- Gestão --}}
-                    <x-dropdown align="left" width="w-56" contentClasses="py-1">
-                        <x-slot name="trigger">
-                            <span class="inline-flex items-center px-1 pt-1 border-b-2 text-sm font-medium leading-5 cursor-pointer transition duration-150 ease-in-out {{ request()->routeIs('requerentes.*', 'gabinetes.*', 'subcontratados.*', 'tipo-imoveis.*', 'documento-tipos.*', 'templates.*') ? 'border-epoc-primary text-gray-900' : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300' }}">
-                                Gestão
-                                <svg class="ms-0.5 h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z" clip-rule="evenodd"/></svg>
-                            </span>
-                        </x-slot>
-                        <x-slot name="content">
-                            <x-dropdown-link :href="route('requerentes.index')">Requerentes</x-dropdown-link>
-                            <x-dropdown-link :href="route('gabinetes.index')">Gabinetes</x-dropdown-link>
-                            <x-dropdown-link :href="route('subcontratados.index')">Subcontratados</x-dropdown-link>
-                            <x-dropdown-link :href="route('tipo-imoveis.index')">Tipos de imóvel</x-dropdown-link>
-                            <div class="border-t border-gray-100 my-1"></div>
-                            <x-dropdown-link :href="route('documento-tipos.index')">Tipos de documento</x-dropdown-link>
-                            <x-dropdown-link :href="route('templates.index')">Templates</x-dropdown-link>
-                        </x-slot>
-                    </x-dropdown>
                 </div>
             </div>
 
@@ -108,35 +95,32 @@
     <!-- Responsive Navigation Menu -->
     <div :class="{'block': open, 'hidden': ! open}" class="hidden sm:hidden">
         <div class="pt-2 pb-3 space-y-1">
-            <div class="px-4 pt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Orçamentos</div>
-            <x-responsive-nav-link :href="route('orcamentos.index')" :active="request()->routeIs('orcamentos.*')">
-                Orçamentos
-            </x-responsive-nav-link>
-            <div class="px-4 pt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Trabalhos</div>
-            <x-responsive-nav-link :href="route('trabalhos.index')" :active="request()->routeIs('trabalhos.*')">
-                Trabalhos
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('servicos.index')" :active="request()->routeIs('servicos.*')">
-                Serviços
-            </x-responsive-nav-link>
+            @php $user = auth()->user(); @endphp
+
+            @if ($user && $user->hasPermission('orcamentos.view'))
+                <div class="px-4 pt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Orçamentos</div>
+                <x-responsive-nav-link :href="route('orcamentos.index')" :active="request()->routeIs('orcamentos.*')">
+                    Orçamentos
+                </x-responsive-nav-link>
+            @endif
+
+            @if ($user && $user->hasPermission('processos.view'))
+                <div class="px-4 pt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Processos</div>
+                <x-responsive-nav-link :href="route('processos.index')" :active="request()->routeIs('processos.*')">
+                    Processos
+                </x-responsive-nav-link>
+            @endif
+
+            @if ($user && $user->hasPermission('trabalhos.view'))
+                <div class="px-4 pt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Trabalhos</div>
+                <x-responsive-nav-link :href="route('trabalhos.index')" :active="request()->routeIs('trabalhos.*')">
+                    Trabalhos
+                </x-responsive-nav-link>
+            @endif
+
             <div class="px-4 pt-2 text-xs font-semibold text-gray-400 uppercase tracking-wider">Gestão</div>
-            <x-responsive-nav-link :href="route('requerentes.index')" :active="request()->routeIs('requerentes.*')">
-                Requerentes
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('gabinetes.index')" :active="request()->routeIs('gabinetes.*')">
-                Gabinetes
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('subcontratados.index')" :active="request()->routeIs('subcontratados.*')">
-                Subcontratados
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('tipo-imoveis.index')" :active="request()->routeIs('tipo-imoveis.*')">
-                Tipos de imóvel
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('documento-tipos.index')" :active="request()->routeIs('documento-tipos.*')">
-                Tipos de documento
-            </x-responsive-nav-link>
-            <x-responsive-nav-link :href="route('templates.index')" :active="request()->routeIs('templates.*')">
-                Templates
+            <x-responsive-nav-link :href="route('gestao.index')" :active="request()->routeIs('gestao.*', 'requerentes.*', 'gabinetes.*', 'subcontratados.*', 'tipo-imoveis.*', 'servicos.*', 'documento-tipos.*', 'templates.*')">
+                Gestão
             </x-responsive-nav-link>
         </div>
 

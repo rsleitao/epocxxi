@@ -13,6 +13,10 @@ class TrabalhosController extends Controller
 {
     public function index(Request $request): View
     {
+        if (! $request->user()->hasPermission('trabalhos.view')) {
+            return redirect()->route('dashboard')
+                ->with('warning', 'Não tem permissão para ver Trabalhos.');
+        }
         $query = OrcamentoItem::query()
             ->whereHas('orcamento', fn ($q) => $q->where('status', 'em_execucao'))
             ->with(['orcamento.requerente', 'orcamento.gabinete', 'orcamento.subcontratado', 'servico', 'user', 'subcontratado'])
@@ -54,6 +58,7 @@ class TrabalhosController extends Controller
 
     public function markConcluido(Request $request, OrcamentoItem $item): JsonResponse
     {
+        abort_unless($request->user()->hasPermission('trabalhos.edit'), 403);
         $item->load('orcamento');
         if ($item->orcamento->status !== 'em_execucao') {
             return response()->json(['ok' => false, 'message' => 'Orçamento não está em execução.'], 422);
