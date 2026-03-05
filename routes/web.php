@@ -41,6 +41,7 @@ Route::middleware('auth')->group(function () {
     Route::get('processos/{processo}', [ProcessoController::class, 'show'])->name('processos.show');
     Route::post('processos/{processo}/documentos/parteescritas', [ProcessoController::class, 'gerarPartesEscritas'])->name('processos.documentos.parteescritas');
     Route::get('trabalhos', [TrabalhosController::class, 'index'])->name('trabalhos.index');
+    Route::patch('trabalhos/{item}/estado', [TrabalhosController::class, 'updateEstado'])->name('trabalhos.update-estado');
     Route::patch('trabalhos/{item}/concluido', [TrabalhosController::class, 'markConcluido'])->name('trabalhos.mark-concluido');
     Route::get('gestao', GestaoController::class)->name('gestao.index');
     Route::get('orcamentos/{orcamento}/report', [OrcamentoController::class, 'report'])->name('orcamentos.report');

@@ -6,11 +6,11 @@
                     Trabalhos
                 </h2>
                 <nav class="flex rounded-lg border border-gray-300 p-0.5 bg-gray-100" aria-label="Vista">
-                    <a href="{{ route('trabalhos.index', request()->only(['concluido'])) }}"
+                    <a href="{{ route('trabalhos.index', request()->only(['estado', 'concluido'])) }}"
                        class="px-3 py-1.5 text-sm font-medium rounded-md bg-epoc-primary text-white hover:bg-epoc-primary-hover">
                         Lista
                     </a>
-                    <a href="{{ route('trabalhos.index', array_merge(request()->only(['concluido']), ['view' => 'kanban'])) }}"
+                    <a href="{{ route('trabalhos.index', array_merge(request()->only(['estado', 'concluido']), ['view' => 'kanban'])) }}"
                        class="px-3 py-1.5 text-sm font-medium rounded-md text-gray-600 hover:text-gray-900">
                         Kanban
                     </a>
@@ -26,17 +26,19 @@
                     <form method="get" action="{{ route('trabalhos.index') }}" class="flex flex-wrap items-end gap-2">
                         <input type="hidden" name="view" value="{{ request('view') }}">
                         <div>
-                            <label for="concluido" class="block text-xs font-medium text-gray-500 mb-0.5">Estado</label>
-                            <select name="concluido" id="concluido" class="rounded-md border-gray-300 shadow-sm focus:border-epoc-primary focus:ring-epoc-primary text-sm">
+                            <label for="estado" class="block text-xs font-medium text-gray-500 mb-0.5">Estado</label>
+                            <select name="estado" id="estado" class="rounded-md border-gray-300 shadow-sm focus:border-epoc-primary focus:ring-epoc-primary text-sm">
                                 <option value="">Todos</option>
-                                <option value="0" {{ request('concluido') === '0' ? 'selected' : '' }}>Pendentes</option>
-                                <option value="1" {{ request('concluido') === '1' ? 'selected' : '' }}>Concluídos</option>
+                                <option value="em_espera" {{ request('estado') === 'em_espera' ? 'selected' : '' }}>Em espera</option>
+                                <option value="em_execucao" {{ request('estado') === 'em_execucao' ? 'selected' : '' }}>Em execução</option>
+                                <option value="pendente" {{ request('estado') === 'pendente' ? 'selected' : '' }}>Pendente</option>
+                                <option value="concluido" {{ request('estado') === 'concluido' ? 'selected' : '' }}>Concluído</option>
                             </select>
                         </div>
                         <button type="submit" class="px-4 py-2 bg-gray-200 rounded-md text-sm font-medium hover:bg-gray-300">
                             Filtrar
                         </button>
-                        @if (request()->has('concluido'))
+                        @if (request()->has('estado') || request()->has('concluido'))
                             <a href="{{ route('trabalhos.index', request()->only(['view'])) }}" class="px-4 py-2 text-gray-600 text-sm hover:underline">
                                 Limpar
                             </a>
@@ -72,15 +74,31 @@
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ $item->orcamento->gabinete?->nome ?? '—' }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ $item->tecnico_nome ?? '—' }}</td>
                                     <td class="px-4 py-3 text-sm">
-                                        @if ($item->concluido_em)
-                                            <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-emerald-100 text-emerald-800">Concluído</span>
-                                            <span class="text-gray-400 text-xs block">{{ $item->concluido_em->format('d/m/Y H:i') }}</span>
-                                        @else
-                                            <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800">Pendente</span>
-                                        @endif
+                                        @switch($item->estado)
+                                            @case('em_espera')
+                                                <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800">Em espera</span>
+                                                @break
+                                            @case('em_execucao')
+                                                <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-blue-100 text-blue-800">Em execução</span>
+                                                @break
+                                            @case('pendente')
+                                                <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-amber-100 text-amber-800">Pendente</span>
+                                                @if ($item->nota_pendente)
+                                                    <span class="text-gray-500 text-xs block mt-0.5">{{ Str::limit($item->nota_pendente, 40) }}</span>
+                                                @endif
+                                                @break
+                                            @case('concluido')
+                                                <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-emerald-100 text-emerald-800">Concluído</span>
+                                                @if ($item->concluido_em)
+                                                    <span class="text-gray-400 text-xs block">{{ $item->concluido_em->format('d/m/Y H:i') }}</span>
+                                                @endif
+                                                @break
+                                            @default
+                                                <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-600">{{ $item->estado ?? '—' }}</span>
+                                        @endswitch
                                     </td>
                                     <td class="px-4 py-3 text-sm text-right">
-                                        @if ($item->concluido_em)
+                                        @if ($item->estado === 'concluido')
                                             <button type="button" class="trabalho-desfazer text-epoc-primary hover:text-epoc-primary-hover font-medium" data-url="{{ route('trabalhos.mark-concluido', $item) }}">Desfazer</button>
                                         @else
                                             @php

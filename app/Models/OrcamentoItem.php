@@ -20,6 +20,8 @@ class OrcamentoItem extends Model
         'concluido_em',
         'id_user',
         'id_subcontratado',
+        'estado',
+        'nota_pendente',
     ];
 
     public function servico(): BelongsTo
@@ -37,8 +39,14 @@ class OrcamentoItem extends Model
 
     public function isConcluido(): bool
     {
-        return $this->concluido_em !== null;
+        return $this->estado === 'concluido' || $this->concluido_em !== null;
     }
+
+    /** Estados possíveis do item (trabalho). */
+    public const ESTADO_EM_ESPERA = 'em_espera';
+    public const ESTADO_EM_EXECUCAO = 'em_execucao';
+    public const ESTADO_PENDENTE = 'pendente';
+    public const ESTADO_CONCLUIDO = 'concluido';
 
     public function orcamento(): BelongsTo
     {
