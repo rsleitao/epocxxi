@@ -37,6 +37,9 @@
                 'tecnico_nome' => $item->tecnico_nome,
                 'concluido_em' => $item->concluido_em?->format('d/m/Y H:i'),
                 'nota_pendente' => $item->nota_pendente,
+                'tempo_total' => $item->tempo_total_formatado,
+                'tempo_a_correr' => $item->hasTempoAberto(),
+                'tempo_started_at' => $item->tempo_started_at,
                 'tecnico_options' => $opts,
                 'edit_orcamento_url' => route('orcamentos.edit', $item->orcamento),
                 'processo_show_url' => $item->orcamento->processo ? route('processos.show', $item->orcamento->processo) : null,
@@ -71,7 +74,7 @@
         </div>
     </x-slot>
 
-    <div class="py-8 pb-20" x-data="kanbanTrabalhos(@js($boardData), @js($estadosOrdem), @js($estadoLabels))">
+    <div class="py-8 pb-20" x-data="kanbanTrabalhos(@js($boardData), @js($estadosOrdem), @js($estadoLabels))" x-init="startLiveTimer()">
         <div class="max-w-full mx-auto sm:px-6 lg:px-8">
             <div class="flex justify-center overflow-x-auto pb-4 min-h-[calc(100vh-12rem)]">
                 <div class="inline-flex gap-4" style="scrollbar-width: thin;">
@@ -121,6 +124,7 @@
                                         <dl class="mt-2 space-y-0.5 text-xs text-gray-600">
                                             <div x-show="card.prazo_data"><span class="text-gray-500">Prazo:</span> <span x-text="card.prazo_data"></span></div>
                                             <div><span class="text-gray-500">Técnico:</span> <span x-text="card.tecnico_nome || '—'"></span></div>
+                                            <div><span class="text-gray-500">Tempo:</span> <span x-text="formatTempoCard(card)"></span><span x-show="card.tempo_a_correr" class="ml-1 text-blue-600 font-medium">(a correr)</span></div>
                                             <div x-show="card.nota_pendente" class="mt-1 p-1.5 bg-amber-50 rounded text-amber-800" x-text="card.nota_pendente"></div>
                                             <div x-show="card.estado === 'concluido' && card.concluido_em" class="text-emerald-600" x-text="'Concluído em ' + card.concluido_em"></div>
                                         </dl>
@@ -190,6 +194,23 @@
             </div>
         </div>
 
+        {{-- Modal: voltar para Em espera (apaga tempo e técnico) --}}
+        <div x-show="showModalVoltarEspera"
+             x-cloak
+             x-transition
+             class="fixed inset-0 z-[60] flex items-center justify-center bg-black/50 p-4"
+             @keydown.escape.window="showModalVoltarEspera = false; pendingVoltarEspera = null">
+            <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+                <h3 class="text-sm font-semibold text-gray-900">Voltar para Em espera</h3>
+                <p class="mt-2 text-sm text-gray-600">Ao voltar para <strong>Em espera</strong> serão apagados os registos de tempo e o técnico atribuído a este trabalho. Esta ação não pode ser desfeita.</p>
+                <p class="mt-2 text-sm text-gray-600">Deseja continuar?</p>
+                <div class="mt-4 flex gap-2 justify-end">
+                    <button type="button" @click="showModalVoltarEspera = false; pendingVoltarEspera = null" class="px-3 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50">Cancelar</button>
+                    <button type="button" @click="confirmVoltarEspera()" class="px-3 py-2 text-sm font-medium text-white bg-amber-600 rounded-md hover:bg-amber-700">Sim, voltar para Em espera</button>
+                </div>
+            </div>
+        </div>
+
         {{-- Modal: orçamento Por faturar --}}
         <div x-show="showModalPorFaturar"
              x-cloak
@@ -244,8 +265,30 @@
                 pendingPendente: null,
                 pendingNotaText: '',
                 showModalPorFaturar: false,
+                showModalVoltarEspera: false,
+                pendingVoltarEspera: null,
                 flashMessage: null,
                 tecnicoSelectValue: '',
+                liveNow: Math.floor(Date.now() / 1000),
+
+                startLiveTimer() {
+                    const self = this;
+                    setInterval(function() { self.liveNow = Math.floor(Date.now() / 1000); }, 10000);
+                },
+                formatTempoSegundos(s) {
+                    if (s <= 0) return '0 min';
+                    const h = Math.floor(s / 3600);
+                    const m = Math.floor((s % 3600) / 60);
+                    if (h > 0) return h + ' h ' + m + ' min';
+                    return m + ' min';
+                },
+                formatTempoCard(card) {
+                    if (card.tempo_a_correr && card.tempo_started_at) {
+                        const s = Math.max(0, this.liveNow - card.tempo_started_at);
+                        return this.formatTempoSegundos(s);
+                    }
+                    return (card.tempo_a_correr && (!card.tempo_total || card.tempo_total === '—')) ? '0 min' : (card.tempo_total || '—');
+                },
 
                 estadoHeaderClass(estado) {
                     return estadoHeaderClasses[estado] || 'bg-gray-200 text-gray-800';
@@ -344,6 +387,14 @@
                             return;
                         }
                     }
+                    if (newEstado === 'em_espera' && oldEstado !== 'em_espera') {
+                        this.pendingVoltarEspera = { cardData, oldEstado };
+                        this.showModalVoltarEspera = true;
+                        this.dragCardId = null;
+                        this.dragCardEstado = null;
+                        this.dragCardData = null;
+                        return;
+                    }
 
                     this.doUpdateEstado(cardData, oldEstado, newEstado, null, null, null);
                 },
@@ -384,6 +435,17 @@
                     this.pendingNotaText = '';
                 },
 
+                confirmVoltarEspera() {
+                    if (!this.pendingVoltarEspera) {
+                        this.showModalVoltarEspera = false;
+                        return;
+                    }
+                    const { cardData, oldEstado } = this.pendingVoltarEspera;
+                    this.showModalVoltarEspera = false;
+                    this.pendingVoltarEspera = null;
+                    this.doUpdateEstado(cardData, oldEstado, 'em_espera', null, null, null);
+                },
+
                 confirmModalPendente() {
                     if (!this.pendingPendente) {
                         this.cancelModalPendente();
@@ -410,10 +472,21 @@
 
                     this.columns[oldEstado] = (this.columns[oldEstado] || []).filter(c => c.id !== cardData.id);
                     const newCard = { ...cardData, estado: newEstado };
+                    if (newEstado === 'em_espera') {
+                        newCard.tecnico_nome = null;
+                        newCard.tempo_total = '—';
+                        newCard.tempo_a_correr = false;
+                    }
                     if ((newEstado === 'em_execucao' || newEstado === 'pendente' || newEstado === 'concluido') && (idUser || idSubcontratado)) {
                         newCard.tecnico_nome = (cardData.tecnico_options || []).find(o =>
                             (o.type === 'user' && o.id == idUser) || (o.type === 'sub' && o.id == idSubcontratado)
                         )?.name || newCard.tecnico_nome;
+                    }
+                    if (newEstado === 'em_execucao') {
+                        newCard.tempo_started_at = Math.floor(Date.now() / 1000);
+                    }
+                    if (newEstado !== 'em_execucao') {
+                        newCard.tempo_started_at = null;
                     }
                     if (newEstado === 'pendente' && notaPendente !== null) newCard.nota_pendente = notaPendente;
                     if (newEstado !== 'pendente') newCard.nota_pendente = null;
@@ -440,8 +513,18 @@
                             this.revertCard(cardData, oldEstado, newEstado);
                             this.flashMessage = data.message || 'Erro ao alterar estado.';
                             setTimeout(() => { this.flashMessage = null; }, 5000);
-                        } else if (data.orcamento_por_faturar) {
-                            this.showModalPorFaturar = true;
+                        } else {
+                            if (data.tempo_total !== undefined) {
+                                this.columns[newEstado] = (this.columns[newEstado] || []).map(c =>
+                                    c.id === cardData.id ? {
+                                        ...c,
+                                        tempo_total: data.tempo_total,
+                                        tempo_a_correr: !!data.tempo_a_correr,
+                                        tempo_started_at: data.tempo_started_at !== undefined ? data.tempo_started_at : c.tempo_started_at
+                                    } : c
+                                );
+                            }
+                            if (data.orcamento_por_faturar) this.showModalPorFaturar = true;
                         }
                     })
                     .catch(() => {

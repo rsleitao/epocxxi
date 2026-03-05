@@ -54,6 +54,7 @@
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Requerente</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Gabinete</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Técnico</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tempo</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Estado</th>
                                 <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
                             </tr>
@@ -73,6 +74,12 @@
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ $item->orcamento->requerente?->nome ?? '—' }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ $item->orcamento->gabinete?->nome ?? '—' }}</td>
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ $item->tecnico_nome ?? '—' }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">
+                                        {{ $item->tempo_total_formatado }}
+                                        @if ($item->hasTempoAberto())
+                                            <span class="text-blue-600 text-xs">(a correr)</span>
+                                        @endif
+                                    </td>
                                     <td class="px-4 py-3 text-sm">
                                         @switch($item->estado)
                                             @case('em_espera')
@@ -113,7 +120,7 @@
                                 </tr>
                             @empty
                                 <tr>
-                                    <td colspan="7" class="px-4 py-8 text-center text-gray-500">
+                                    <td colspan="8" class="px-4 py-8 text-center text-gray-500">
                                         Nenhum trabalho em execução. Os trabalhos aparecem aqui quando um orçamento está «Em execução».
                                     </td>
                                 </tr>

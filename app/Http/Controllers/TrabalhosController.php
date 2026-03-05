@@ -22,7 +22,7 @@ class TrabalhosController extends Controller
 
         $query = OrcamentoItem::query()
             ->whereHas('orcamento', fn ($q) => $q->where('status', 'em_execucao'))
-            ->with(['orcamento.requerente', 'orcamento.gabinete', 'orcamento.processo', 'orcamento.subcontratado', 'servico', 'user', 'subcontratado']);
+            ->with(['orcamento.requerente', 'orcamento.gabinete', 'orcamento.processo', 'orcamento.subcontratado', 'servico', 'user', 'subcontratado', 'tempoSegmentos']);
 
         if ($request->input('view') === 'kanban') {
             $byEstado = [];
@@ -96,6 +96,20 @@ class TrabalhosController extends Controller
                 $item->id_subcontratado = $idSubcontratado ?: null;
             }
             $item->nota_pendente = null;
+
+            // Um técnico não pode ter outro trabalho em "Em execução" ao mesmo tempo
+            $outroEmExecucao = OrcamentoItem::query()
+                ->whereHas('orcamento', fn ($q) => $q->where('status', 'em_execucao'))
+                ->where('estado', 'em_execucao')
+                ->where('id', '!=', $item->id);
+            if ($item->id_user) {
+                $outroEmExecucao->where('id_user', $item->id_user);
+            } else {
+                $outroEmExecucao->where('id_subcontratado', $item->id_subcontratado);
+            }
+            if ($outroEmExecucao->exists()) {
+                return response()->json(['ok' => false, 'message' => 'Este técnico já tem outro trabalho em execução. Passe esse trabalho para Pendente ou Concluído primeiro.'], 422);
+            }
         }
 
         if ($estado === 'pendente') {
@@ -118,6 +132,9 @@ class TrabalhosController extends Controller
 
         if ($estado === 'em_espera') {
             $item->nota_pendente = null;
+            $item->id_user = null;
+            $item->id_subcontratado = null;
+            $item->tempoSegmentos()->delete();
         }
 
         if ($estado === 'concluido') {
@@ -141,8 +158,15 @@ class TrabalhosController extends Controller
             $item->concluido_em = null;
         }
 
+        // Cronómetro: fechar segmento aberto se estava em execução; abrir novo se passa a em execução
+        if ($item->estado === 'em_execucao') {
+            $item->fecharTempoAberto();
+        }
         $item->estado = $estado;
         $item->save();
+        if ($estado === 'em_execucao') {
+            $item->abrirSegmentoTempo();
+        }
 
         $orcamento_por_faturar = false;
         if ($estado === 'concluido') {
@@ -160,10 +184,15 @@ class TrabalhosController extends Controller
             }
         }
 
+        $item->load('tempoSegmentos');
+
         return response()->json([
             'ok' => true,
             'estado' => $estado,
             'orcamento_por_faturar' => $orcamento_por_faturar,
+            'tempo_total' => $item->tempo_total_formatado,
+            'tempo_a_correr' => $item->hasTempoAberto(),
+            'tempo_started_at' => $item->tempo_started_at,
         ]);
     }
 
@@ -176,6 +205,7 @@ class TrabalhosController extends Controller
         }
 
         if ($item->estado === 'concluido' && $item->concluido_em) {
+            $item->fecharTempoAberto();
             $item->estado = 'em_espera';
             $item->concluido_em = null;
             $item->save();
@@ -200,6 +230,7 @@ class TrabalhosController extends Controller
         $item->estado = 'concluido';
         $item->concluido_em = now();
         $item->nota_pendente = null;
+        $item->fecharTempoAberto();
         $item->save();
 
         $orcamento = $item->orcamento->fresh('itens');
