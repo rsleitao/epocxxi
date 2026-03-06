@@ -12,7 +12,35 @@
 
                 <!-- Navigation Links -->
                 <div class="hidden sm:flex sm:items-center sm:gap-6 sm:ms-10">
-                    @php $user = auth()->user(); @endphp
+                    @php
+                        $user = auth()->user();
+                        $trabalhoAtual = null;
+                        $trabalhoAtualPayload = null;
+                        if ($user && $user->hasPermission('trabalhos.view')) {
+                            $trabalhoAtual = \App\Models\OrcamentoItem::query()
+                                ->whereHas('orcamento', fn ($q) => $q->where('status', 'em_execucao'))
+                                ->whereIn('estado', ['em_execucao', 'pendente'])
+                                ->where('id_user', $user->id)
+                                ->with(['servico', 'orcamento.processo', 'tempoSegmentos'])
+                                ->orderBy('id')
+                                ->first();
+                            if ($trabalhoAtual) {
+                                $trabalhoAtual->load(['tempoSegmentos']);
+                                $trabalhoAtualPayload = [
+                                    'id' => $trabalhoAtual->id,
+                                    'estado' => $trabalhoAtual->estado,
+                                    'servico_nome' => $trabalhoAtual->servico?->nome ?? 'Serviço ocasional',
+                                    'processo_ref' => $trabalhoAtual->orcamento->processo?->referencia,
+                                    'orcamento_numero' => $trabalhoAtual->orcamento->numero ?? '#'.$trabalhoAtual->orcamento->id,
+                                    'tempo_total_formatado' => $trabalhoAtual->tempo_total_formatado,
+                                    'tempo_a_correr' => $trabalhoAtual->hasTempoAberto(),
+                                    'tempo_started_at' => $trabalhoAtual->tempo_started_at,
+                                    'update_estado_url' => route('trabalhos.update-estado', $trabalhoAtual),
+                                    'target_estado' => $trabalhoAtual->estado === 'em_execucao' ? 'pendente' : 'em_execucao',
+                                ];
+                            }
+                        }
+                    @endphp
 
                     {{-- Orçamentos (link direto) --}}
                     @if ($user && $user->hasPermission('orcamentos.view'))
@@ -47,7 +75,46 @@
             </div>
 
             <!-- Settings Dropdown -->
-            <div class="hidden sm:flex sm:items-center sm:ms-6">
+            <div class="hidden sm:flex sm:items-center sm:ms-6 gap-4">
+                @if ($user && $user->hasPermission('trabalhos.edit'))
+                    <div class="hidden md:flex items-center"
+                         x-data="headerTrabalhoAtual(@js($trabalhoAtualPayload))"
+                         x-show="trabalho"
+                         x-cloak
+                         @trabalho-atual-atualizado.window="trabalho = $event.detail">
+                        <div class="px-3 py-1.5 rounded-full border border-epoc-primary/40 bg-epoc-primary/5 text-xs text-gray-700 flex items-center gap-2">
+                            <div class="flex flex-col">
+                                <span class="font-semibold text-epoc-primary" x-text="trabalho ? (trabalho.estado === 'em_execucao' ? 'Trabalho em execução' : 'Trabalho pausado') : ''"></span>
+                                <span class="text-gray-600">
+                                    <span x-text="trabalho ? trabalho.servico_nome : ''"></span>
+                                    <span x-show="trabalho && trabalho.processo_ref" x-text="' · Proc. ' + trabalho.processo_ref"></span>
+                                    <span x-text="trabalho ? ' · Orç. ' + trabalho.orcamento_numero : ''"></span>
+                                </span>
+                            </div>
+                            <span class="flex items-center gap-1 text-gray-700">
+                                <span x-text="trabalho ? trabalho.tempo_total_formatado : ''"></span>
+                                <span x-show="trabalho && trabalho.tempo_a_correr" class="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                            </span>
+                            <button type="button"
+                                    x-show="trabalho"
+                                    @click="toggleEstado()"
+                                    class="inline-flex items-center justify-center w-7 h-7 rounded-full text-white text-xs font-semibold transition"
+                                    :class="trabalho && trabalho.target_estado === 'pendente' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700'">
+                                <template x-if="trabalho && trabalho.target_estado === 'pendente'">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M6 4a1 1 0 00-1 1v10a1 1 0 102 0V5a1 1 0 00-1-1zm6 0a1 1 0 00-1 1v10a1 1 0 102 0V5a1 1 0 00-1-1z" />
+                                    </svg>
+                                </template>
+                                <template x-if="trabalho && trabalho.target_estado === 'em_execucao'">
+                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-3.5 w-3.5" fill="currentColor" viewBox="0 0 20 20">
+                                        <path d="M6.5 4.5a1 1 0 011.5-.866l7 4.5a1 1 0 010 1.732l-7 4.5A1 1 0 016 13.5v-9z" />
+                                    </svg>
+                                </template>
+                            </button>
+                        </div>
+                    </div>
+                @endif
+
                 <x-dropdown align="right" width="48">
                     <x-slot name="trigger">
                         <button class="inline-flex items-center px-3 py-2 border border-transparent text-sm leading-4 font-medium rounded-md text-gray-500 bg-white hover:text-gray-700 focus:outline-none transition ease-in-out duration-150">
@@ -150,3 +217,82 @@
         </div>
     </div>
 </nav>
+
+<script>
+    document.addEventListener('alpine:init', function () {
+        Alpine.data('headerTrabalhoAtual', function (initial) {
+            return {
+                trabalho: initial,
+                toggleEstado: function () {
+                    var self = this;
+                    if (!self.trabalho || !self.trabalho.update_estado_url) return;
+                    var csrf = document.querySelector('meta[name="csrf-token"]') && document.querySelector('meta[name="csrf-token"]').getAttribute('content') || '';
+                    fetch(self.trabalho.update_estado_url, {
+                        method: 'PATCH',
+                        headers: {
+                            'X-CSRF-TOKEN': csrf,
+                            'Accept': 'application/json',
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({ estado: self.trabalho.target_estado })
+                    }).then(function (r) { return r.json(); }).then(function (data) {
+                        if (data.ok && data.hasOwnProperty('trabalho_atual')) {
+                            self.trabalho = data.trabalho_atual;
+                            window.dispatchEvent(new CustomEvent('trabalho-estado-alterado-header', { detail: data.trabalho_atual }));
+                        }
+                    }).catch(function () {
+                        alert('Erro de ligação ao servidor.');
+                    });
+                }
+            };
+        });
+    });
+    document.addEventListener('DOMContentLoaded', function () {
+        var csrf = document.querySelector('meta[name="csrf-token"]') && document.querySelector('meta[name="csrf-token"]').content || '';
+        document.querySelectorAll('[data-trabalho-estado-url]').forEach(function (btn) {
+            btn.addEventListener('click', function (e) {
+                e.preventDefault();
+                var url = this.dataset.trabalhoEstadoUrl;
+                var target = this.dataset.trabalhoEstadoTarget;
+                if (!url || !target) return;
+
+                fetch(url, {
+                    method: 'PATCH',
+                    headers: {
+                        'X-CSRF-TOKEN': csrf,
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ estado: target })
+                }).then(function (res) { return res.json(); }).then(function (data) {
+                    if (data.ok) {
+                        if (data.hasOwnProperty('trabalho_atual')) {
+                            window.dispatchEvent(new CustomEvent('trabalho-atual-atualizado', { detail: data.trabalho_atual }));
+                        }
+                        window.location.reload();
+                    } else {
+                        var modalErro = document.getElementById('modal-erro-trabalho');
+                        var modalErroText = document.getElementById('modal-erro-trabalho-text');
+                        if (modalErro && modalErroText) {
+                            modalErroText.textContent = data.message || 'Erro ao atualizar estado do trabalho.';
+                            modalErro.classList.remove('hidden');
+                            modalErro.classList.add('flex');
+                        } else {
+                            alert(data.message || 'Erro ao atualizar estado do trabalho.');
+                        }
+                    }
+                }).catch(function () {
+                    var modalErro = document.getElementById('modal-erro-trabalho');
+                    var modalErroText = document.getElementById('modal-erro-trabalho-text');
+                    if (modalErro && modalErroText) {
+                        modalErroText.textContent = 'Erro de ligação ao servidor.';
+                        modalErro.classList.remove('hidden');
+                        modalErro.classList.add('flex');
+                    } else {
+                        alert('Erro de ligação ao servidor.');
+                    }
+                });
+            });
+        });
+    });
+</script>

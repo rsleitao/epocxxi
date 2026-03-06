@@ -123,6 +123,21 @@
                 @if (auth()->user()?->isAdmin())
                     <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-5 flex flex-col justify-between">
                         <div>
+                            <h3 class="text-base font-semibold text-gray-900">Relatórios</h3>
+                            <p class="mt-1 text-sm text-gray-600">
+                                Trabalhos concluídos, tempo por gabinete e técnico. Filtros por período para visão da produtividade.
+                            </p>
+                        </div>
+                        <div class="mt-4">
+                            <a href="{{ route('gestao.relatorios') }}"
+                               class="inline-flex items-center px-3 py-2 bg-epoc-primary text-white rounded-md text-xs font-semibold uppercase tracking-widest hover:bg-epoc-primary-hover">
+                                Abrir relatórios
+                            </a>
+                        </div>
+                    </div>
+
+                    <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-5 flex flex-col justify-between">
+                        <div>
                             <h3 class="text-base font-semibold text-gray-900">Utilizadores</h3>
                             <p class="mt-1 text-sm text-gray-600">
                                 Crie contas para novos colaboradores e defina se são administradores ou funcionários.

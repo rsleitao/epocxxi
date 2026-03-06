@@ -9,6 +9,7 @@ use App\Http\Controllers\OrcamentoController;
 use App\Http\Controllers\ProcessoController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\RequerenteController;
+use App\Http\Controllers\RelatoriosController;
 use App\Http\Controllers\ServicoController;
 use App\Http\Controllers\SubcontratadoController;
 use App\Http\Controllers\TemplateController;
@@ -44,6 +45,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('trabalhos/{item}/estado', [TrabalhosController::class, 'updateEstado'])->name('trabalhos.update-estado');
     Route::patch('trabalhos/{item}/concluido', [TrabalhosController::class, 'markConcluido'])->name('trabalhos.mark-concluido');
     Route::get('gestao', GestaoController::class)->name('gestao.index');
+    Route::get('gestao/relatorios', [RelatoriosController::class, 'index'])->name('gestao.relatorios')->middleware('admin');
     Route::get('orcamentos/{orcamento}/report', [OrcamentoController::class, 'report'])->name('orcamentos.report');
     Route::get('orcamentos/{orcamento}/gerar-documento/{template}', [TemplateController::class, 'gerarOrcamento'])->name('orcamentos.gerar-documento');
 

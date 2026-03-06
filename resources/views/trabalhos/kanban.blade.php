@@ -18,11 +18,21 @@
         'concluido' => 'bg-emerald-50',
     ];
     $boardData = [];
+    $hoje = \Carbon\Carbon::today();
     foreach ($estadosOrdem as $estado) {
-        $boardData[$estado] = $byEstado[$estado]->map(function ($item) use ($users) {
+        $boardData[$estado] = $byEstado[$estado]->map(function ($item) use ($users, $hoje) {
             $opts = $users->map(fn ($u) => ['type' => 'user', 'id' => $u->id, 'name' => $u->name])->values()->all();
             if ($item->orcamento->subcontratado) {
                 $opts[] = ['type' => 'sub', 'id' => $item->orcamento->subcontratado->id, 'name' => $item->orcamento->subcontratado->nome . ' (subcontratado)'];
+            }
+            $prazoEstado = null;
+            if ($item->prazo_data) {
+                $diffDias = $item->prazo_data->diffInDays($hoje, false); // negativo se prazo no futuro
+                if ($item->prazo_data->lt($hoje)) {
+                    $prazoEstado = 'atraso';
+                } elseif ($diffDias === 0 || $diffDias === -1) {
+                    $prazoEstado = 'alerta';
+                }
             }
             return [
                 'id' => $item->id,
@@ -34,6 +44,7 @@
                 'servico_nome' => $item->servico?->nome ?? 'Serviço ocasional',
                 'tipo_trabalho' => $item->servico?->tipo_trabalho,
                 'prazo_data' => $item->prazo_data?->format('d/m/Y'),
+                'prazo_estado' => $prazoEstado,
                 'tecnico_nome' => $item->tecnico_nome,
                 'concluido_em' => $item->concluido_em?->format('d/m/Y H:i'),
                 'nota_pendente' => $item->nota_pendente,
@@ -49,9 +60,17 @@
 @endphp
 <style>
     .kanban-cursor-grab { cursor: grab !important; }
-    .kanban-cursor-grab * { cursor: grab !important; }
+    .kanban-cursor-grab a,
+    .kanban-cursor-grab button { cursor: pointer !important; }
     html.kanban-dragging, html.kanban-dragging *,
     body.kanban-dragging, body.kanban-dragging * { cursor: grabbing !important; }
+    @keyframes pulse-dot {
+        0%, 100% { opacity: 0.4; transform: scale(0.9); }
+        50% { opacity: 1; transform: scale(1.1); }
+    }
+    .dot-live {
+        animation: pulse-dot 1.4s ease-in-out infinite;
+    }
 </style>
 <x-app-layout>
     <x-slot name="header">
@@ -74,7 +93,7 @@
         </div>
     </x-slot>
 
-    <div class="py-8 pb-20" x-data="kanbanTrabalhos(@js($boardData), @js($estadosOrdem), @js($estadoLabels))" x-init="startLiveTimer()">
+    <div class="py-8 pb-20" x-data="kanbanTrabalhos(@js($boardData), @js($estadosOrdem), @js($estadoLabels))" x-init="init()">
         <div class="max-w-full mx-auto sm:px-6 lg:px-8">
             <div class="flex justify-center overflow-x-auto pb-4 min-h-[calc(100vh-12rem)]">
                 <div class="inline-flex gap-4" style="scrollbar-width: thin;">
@@ -109,26 +128,41 @@
                                          draggable="true"
                                          @dragstart="dragStart($event, card.id, card.estado)"
                                          @dragend="dragEnd($event)">
-                                        <div class="flex items-center justify-between gap-2 flex-wrap">
-                                            <p class="text-xs font-mono text-gray-500">
-                                                <a :href="card.edit_orcamento_url" class="text-epoc-primary hover:underline" @click.stop x-text="'Orç. ' + card.orcamento_numero"></a>
-                                            </p>
-                                            <template x-if="card.processo_show_url">
-                                                <p class="text-xs font-mono text-gray-500">
-                                                    <a :href="card.processo_show_url" class="text-epoc-primary hover:underline" @click.stop x-text="'Proc. ' + (card.processo_ref || '')"></a>
-                                                </p>
-                                            </template>
+                                        <div class="flex justify-between items-start gap-2">
+                                            <div class="min-w-0 flex-1">
+                                                <p class="text-sm font-medium text-gray-900" x-text="card.servico_nome"></p>
+                                            </div>
+                                            <div class="flex-shrink-0 flex flex-col items-end gap-0.5 text-xs font-mono cursor-pointer">
+                                                <template x-if="card.processo_show_url">
+                                                    <a :href="card.processo_show_url" class="text-epoc-primary hover:underline block" @click.stop x-text="'Proc. ' + (card.processo_ref || '')"></a>
+                                                </template>
+                                                <a :href="card.edit_orcamento_url" class="text-epoc-primary hover:underline block" @click.stop x-text="'Orç. ' + card.orcamento_numero"></a>
+                                            </div>
                                         </div>
-                                        <p class="text-sm font-medium text-gray-900 mt-1.5" x-text="card.servico_nome"></p>
                                         <p class="text-xs text-gray-600 mt-0.5" x-show="card.tipo_trabalho" x-text="'Tipo: ' + card.tipo_trabalho"></p>
                                         <dl class="mt-2 space-y-0.5 text-xs text-gray-600">
-                                            <div x-show="card.prazo_data"><span class="text-gray-500">Prazo:</span> <span x-text="card.prazo_data"></span></div>
-                                            <div><span class="text-gray-500">Técnico:</span> <span x-text="card.tecnico_nome || '—'"></span></div>
-                                            <div><span class="text-gray-500">Tempo:</span> <span x-text="formatTempoCard(card)"></span><span x-show="card.tempo_a_correr" class="ml-1 text-blue-600 font-medium">(a correr)</span></div>
+                                            <div x-show="card.prazo_data">
+                                                <span class="text-gray-500">Prazo:</span>
+                                                <span :class="prazoClass(card)" x-text="card.prazo_data"></span>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-500">Técnico:</span>
+                                                <button type="button"
+                                                        class="ml-1 text-epoc-primary hover:text-epoc-primary-hover underline-offset-2 hover:underline"
+                                                        @click.stop="openModalTecnicoReatribuir(card)">
+                                                    <span x-text="card.tecnico_nome || 'Definir técnico'"></span>
+                                                </button>
+                                            </div>
+                                            <div>
+                                                <span class="text-gray-500">Tempo:</span>
+                                                <span x-text="formatTempoCard(card)"></span>
+                                                <span x-show="card.tempo_a_correr" class="inline-flex items-center ml-1">
+                                                    <span class="inline-block w-2 h-2 rounded-full bg-green-500 dot-live"></span>
+                                                </span>
+                                            </div>
                                             <div x-show="card.nota_pendente" class="mt-1 p-1.5 bg-amber-50 rounded text-amber-800" x-text="card.nota_pendente"></div>
                                             <div x-show="card.estado === 'concluido' && card.concluido_em" class="text-emerald-600" x-text="'Concluído em ' + card.concluido_em"></div>
                                         </dl>
-                                        <a :href="card.edit_orcamento_url" class="inline-block mt-2 text-xs font-medium text-epoc-primary hover:text-epoc-primary-hover kanban-cursor-grab" @click.stop>Ver orçamento →</a>
                                     </div>
                                 </template>
                                 <div x-show="!(columns[estado]?.length)" class="flex items-center justify-center h-24 text-sm text-gray-400 rounded border-2 border-dashed border-gray-300">
@@ -247,7 +281,7 @@
         function kanbanTrabalhos(initialColumns, estadosOrdemArray, estadoLabelsMap) {
             const estadoHeaderClasses = @json($estadoHeaderClasses);
             const estadoBodyClasses = @json($estadoBodyClasses);
-            const urlEstado = '{{ url("trabalhos") }}';
+            const urlEstadoBase = '{{ url(route("trabalhos.update-estado", ["item" => "__ID__"])) }}';
             const csrf = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
 
             return {
@@ -271,6 +305,49 @@
                 tecnicoSelectValue: '',
                 liveNow: Math.floor(Date.now() / 1000),
 
+                init() {
+                    const self = this;
+                    this.startLiveTimer();
+                    window.addEventListener('trabalho-estado-alterado-header', function(e) {
+                        self.aplicarAlteracaoDoHeader(e.detail);
+                    });
+                },
+
+                aplicarAlteracaoDoHeader(payload) {
+                    if (!payload || payload.id == null) return;
+                    const id = payload.id;
+                    const newEstado = payload.estado;
+                    let oldEstado = null;
+                    let card = null;
+                    for (const est of this.estadosOrdem) {
+                        const col = this.columns[est] || [];
+                        const idx = col.findIndex(c => c.id === id);
+                        if (idx >= 0) {
+                            oldEstado = est;
+                            card = { ...col[idx] };
+                            break;
+                        }
+                    }
+                    if (!card || !oldEstado || oldEstado === newEstado) return;
+                    this.columns[oldEstado] = (this.columns[oldEstado] || []).filter(c => c.id !== id);
+                    card.estado = newEstado;
+                    if (payload.tempo_total_formatado !== undefined) card.tempo_total = payload.tempo_total_formatado;
+                    if (payload.tempo_a_correr !== undefined) card.tempo_a_correr = !!payload.tempo_a_correr;
+                    if (payload.tempo_started_at !== undefined) card.tempo_started_at = payload.tempo_started_at;
+                    if (newEstado !== 'em_execucao') card.tempo_started_at = null;
+                    if (!this.columns[newEstado]) this.columns[newEstado] = [];
+                    this.columns[newEstado] = [...this.columns[newEstado], card];
+                },
+
+                openModalTecnicoReatribuir(card) {
+                    this.pendingTecnico = {
+                        ...card,
+                        targetEstado: card.estado
+                    };
+                    this.tecnicoSelectValue = '';
+                    this.showModalTecnico = true;
+                },
+
                 startLiveTimer() {
                     const self = this;
                     setInterval(function() { self.liveNow = Math.floor(Date.now() / 1000); }, 10000);
@@ -288,6 +365,12 @@
                         return this.formatTempoSegundos(s);
                     }
                     return (card.tempo_a_correr && (!card.tempo_total || card.tempo_total === '—')) ? '0 min' : (card.tempo_total || '—');
+                },
+                prazoClass(card) {
+                    if (!card.prazo_estado) return '';
+                    if (card.prazo_estado === 'atraso') return 'text-red-600 font-semibold';
+                    if (card.prazo_estado === 'alerta') return 'text-amber-600 font-semibold';
+                    return '';
                 },
 
                 estadoHeaderClass(estado) {
@@ -424,6 +507,9 @@
                         this.pendingPendente = { ...cardData, idUser, idSubcontratado, tecnico_nome: tecnicoNome || cardData.tecnico_nome, targetEstado: 'pendente' };
                         this.pendingNotaText = cardData.nota_pendente || '';
                         this.showModalPendente = true;
+                    } else if (targetEstado === cardData.estado) {
+                        // Apenas reatribuir técnico mantendo o mesmo estado
+                        this.doUpdateEstado(cardData, cardData.estado, cardData.estado, idUser, idSubcontratado, null);
                     } else {
                         this.doUpdateEstado(cardData, cardData.estado, targetEstado, idUser, idSubcontratado, null);
                     }
@@ -502,7 +588,7 @@
                     if (idSubcontratado) body.id_subcontratado = idSubcontratado;
                     if (notaPendente !== null && notaPendente !== undefined) body.nota_pendente = notaPendente;
 
-                    fetch(`${urlEstado}/${cardData.id}/estado`, {
+                    fetch(urlEstadoBase.replace('__ID__', cardData.id), {
                         method: 'PATCH',
                         headers: { 'Content-Type': 'application/json', 'Accept': 'application/json', 'X-CSRF-TOKEN': csrf },
                         body: JSON.stringify(body),
@@ -514,17 +600,21 @@
                             this.flashMessage = data.message || 'Erro ao alterar estado.';
                             setTimeout(() => { this.flashMessage = null; }, 5000);
                         } else {
-                            if (data.tempo_total !== undefined) {
-                                this.columns[newEstado] = (this.columns[newEstado] || []).map(c =>
-                                    c.id === cardData.id ? {
-                                        ...c,
+                            this.columns[newEstado] = (this.columns[newEstado] || []).map(c =>
+                                c.id === cardData.id ? {
+                                    ...c,
+                                    ...(data.tempo_total !== undefined && {
                                         tempo_total: data.tempo_total,
                                         tempo_a_correr: !!data.tempo_a_correr,
                                         tempo_started_at: data.tempo_started_at !== undefined ? data.tempo_started_at : c.tempo_started_at
-                                    } : c
-                                );
-                            }
+                                    }),
+                                    ...(data.tecnico_nome !== undefined && { tecnico_nome: data.tecnico_nome })
+                                } : c
+                            );
                             if (data.orcamento_por_faturar) this.showModalPorFaturar = true;
+                            if (data.trabalho_atual !== undefined) {
+                                window.dispatchEvent(new CustomEvent('trabalho-atual-atualizado', { detail: data.trabalho_atual }));
+                            }
                         }
                     })
                     .catch(() => {

@@ -72,6 +72,52 @@
                 @endif
             </div>
 
+            @if (auth()->user()?->hasPermission('relatorios.tempo'))
+                @php
+                    $tempoTotalOrcamento = $orcamento->itens->sum(fn ($i) => $i->total_tempo_segundos);
+                    $tempoTotalFormatado = $tempoTotalOrcamento > 0
+                        ? (floor($tempoTotalOrcamento / 3600) > 0
+                            ? (int) floor($tempoTotalOrcamento / 3600) . ' h ' . (int) floor(($tempoTotalOrcamento % 3600) / 60) . ' min'
+                            : (int) floor($tempoTotalOrcamento / 60) . ' min')
+                        : '—';
+                @endphp
+                <div id="tempo-trabalhos" class="mt-6 bg-white overflow-hidden shadow-sm sm:rounded-lg scroll-mt-4">
+                    <div class="p-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-2">
+                        <div>
+                            <h3 class="text-sm font-medium text-gray-700">Tempo por trabalho</h3>
+                            <p class="text-xs text-gray-500 mt-0.5">Tempo registado em cada linha (apenas visível para quem tem permissão de relatórios).</p>
+                        </div>
+                        <div class="text-sm font-semibold text-epoc-primary">
+                            Total orçamento: {{ $tempoTotalFormatado }}
+                        </div>
+                    </div>
+                    <div class="overflow-x-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50">
+                                <tr>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Serviço</th>
+                                    <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Técnico</th>
+                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tempo</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200">
+                                @forelse ($orcamento->itens as $item)
+                                    <tr>
+                                        <td class="px-4 py-3 text-sm text-gray-900">{{ $item->servico?->nome ?? 'Serviço ocasional' }}</td>
+                                        <td class="px-4 py-3 text-sm text-gray-600">{{ $item->tecnico_nome ?? '—' }}</td>
+                                        <td class="px-4 py-3 text-sm text-right font-mono text-gray-700">{{ $item->tempo_total_formatado }}</td>
+                                    </tr>
+                                @empty
+                                    <tr>
+                                        <td colspan="3" class="px-4 py-4 text-sm text-gray-500 text-center">Nenhum item com tempo registado.</td>
+                                    </tr>
+                                @endforelse
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            @endif
+
             @if ($orcamento->historico->isNotEmpty())
                 <div id="historico" class="mt-6 bg-white overflow-hidden shadow-sm sm:rounded-lg scroll-mt-4">
                     <div class="p-4 border-b border-gray-200">

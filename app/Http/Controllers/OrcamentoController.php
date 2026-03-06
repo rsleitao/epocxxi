@@ -162,6 +162,9 @@ class OrcamentoController extends Controller
         abort_unless(auth()->user()->hasPermission('orcamentos.edit'), 403);
         $orcamento->load([
             'itens.servico',
+            'itens.tempoSegmentos',
+            'itens.user',
+            'itens.subcontratado',
             'imovel.tipoImovel', 'imovel.distrito', 'imovel.concelho', 'imovel.freguesia',
             'historico' => fn ($q) => $q->with('user')->orderByDesc('created_at'),
         ]);

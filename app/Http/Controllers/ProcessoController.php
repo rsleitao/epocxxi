@@ -55,7 +55,7 @@ class ProcessoController extends Controller
             'imovel.concelho',
             'imovel.freguesia',
             'imovel.tipoImovel',
-            'orcamentos' => fn ($q) => $q->with(['gabinete', 'subcontratado', 'itens']),
+            'orcamentos' => fn ($q) => $q->with(['gabinete', 'subcontratado', 'itens.tempoSegmentos']),
         ]);
 
         $valorFaturado = $processo->orcamentos

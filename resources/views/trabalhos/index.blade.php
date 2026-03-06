@@ -50,8 +50,8 @@
                         <thead class="bg-gray-50">
                             <tr>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Orçamento</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Serviço / Descrição</th>
-                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Requerente</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Serviço</th>
+                                <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Prazo</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Gabinete</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Técnico</th>
                                 <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Tempo</th>
@@ -67,17 +67,28 @@
                                     </td>
                                     <td class="px-4 py-3 text-sm text-gray-900">
                                         {{ $item->servico?->nome ?? 'Serviço ocasional' }}
-                                        @if ($item->descricao)
-                                            <span class="text-gray-500 block text-xs">{{ Str::limit($item->descricao, 50) }}</span>
+                                        @if ($item->servico?->tipo_trabalho)
+                                            <span class="block text-xs text-gray-500">{{ $item->servico->tipo_trabalho }}</span>
                                         @endif
                                     </td>
-                                    <td class="px-4 py-3 text-sm text-gray-600">{{ $item->orcamento->requerente?->nome ?? '—' }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">
+                                        {{ $item->prazo_data?->format('d/m/Y') ?? '—' }}
+                                    </td>
                                     <td class="px-4 py-3 text-sm text-gray-600">{{ $item->orcamento->gabinete?->nome ?? '—' }}</td>
-                                    <td class="px-4 py-3 text-sm text-gray-600">{{ $item->tecnico_nome ?? '—' }}</td>
+                                    <td class="px-4 py-3 text-sm text-gray-600">
+                                        <button type="button"
+                                                class="text-epoc-primary hover:text-epoc-primary-hover underline-offset-2 hover:underline text-sm"
+                                                data-trabalho-tecnico-url="{{ url(route('trabalhos.update-estado', $item)) }}"
+                                                data-trabalho-tecnico-estado="{{ $item->estado }}">
+                                            {{ $item->tecnico_nome ?? 'Definir técnico' }}
+                                        </button>
+                                    </td>
                                     <td class="px-4 py-3 text-sm text-gray-600">
                                         {{ $item->tempo_total_formatado }}
                                         @if ($item->hasTempoAberto())
-                                            <span class="text-blue-600 text-xs">(a correr)</span>
+                                            <span class="inline-flex items-center ml-1">
+                                                <span class="inline-block w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                                            </span>
                                         @endif
                                     </td>
                                     <td class="px-4 py-3 text-sm">
@@ -105,6 +116,35 @@
                                         @endswitch
                                     </td>
                                     <td class="px-4 py-3 text-sm text-right">
+                                        @php
+                                            $targetEstado = null;
+                                            $labelEstado = null;
+                                            if ($item->estado === 'em_espera') {
+                                                $targetEstado = 'em_execucao';
+                                                $labelEstado = 'Iniciar';
+                                            } elseif ($item->estado === 'em_execucao') {
+                                                $targetEstado = 'pendente';
+                                                $labelEstado = 'Pausar';
+                                            } elseif ($item->estado === 'pendente') {
+                                                $targetEstado = 'em_execucao';
+                                                $labelEstado = 'Retomar';
+                                            }
+                                        @endphp
+
+                                        @if ($targetEstado && auth()->user()->hasPermission('trabalhos.edit'))
+                                            <button type="button"
+                                                    class="inline-flex items-center justify-center w-8 h-8 rounded-full text-white transition mr-2 {{ $targetEstado === 'pendente' ? 'bg-red-600 hover:bg-red-700' : 'bg-green-600 hover:bg-green-700' }}"
+                                                    title="{{ $labelEstado }}"
+                                                    data-trabalho-estado-url="{{ route('trabalhos.update-estado', $item) }}"
+                                                    data-trabalho-estado-target="{{ $targetEstado }}">
+                                                @if ($targetEstado === 'pendente')
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M6 4a1 1 0 00-1 1v10a1 1 0 102 0V5a1 1 0 00-1-1zm6 0a1 1 0 00-1 1v10a1 1 0 102 0V5a1 1 0 00-1-1z"/></svg>
+                                                @else
+                                                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path d="M6.5 4.5a1 1 0 011.5-.866l7 4.5a1 1 0 010 1.732l-7 4.5A1 1 0 016 13.5v-9z"/></svg>
+                                                @endif
+                                            </button>
+                                        @endif
+
                                         @if ($item->estado === 'concluido')
                                             <button type="button" class="trabalho-desfazer text-epoc-primary hover:text-epoc-primary-hover font-medium" data-url="{{ route('trabalhos.mark-concluido', $item) }}">Desfazer</button>
                                         @else
@@ -113,8 +153,11 @@
                                                 if ($item->orcamento->subcontratado) {
                                                     $opts[] = ['type' => 'sub', 'id' => $item->orcamento->subcontratado->id, 'name' => $item->orcamento->subcontratado->nome . ' (subcontratado)'];
                                                 }
+                                                $temTecnico = $item->id_user || $item->id_subcontratado;
                                             @endphp
-                                            <button type="button" class="trabalho-marcar-concluido text-epoc-primary hover:text-epoc-primary-hover font-medium" data-url="{{ route('trabalhos.mark-concluido', $item) }}" data-tecnico-options="{{ json_encode($opts) }}">Marcar concluído</button>
+                                            <button type="button" class="trabalho-marcar-concluido inline-flex items-center justify-center w-8 h-8 rounded-full bg-emerald-600 hover:bg-emerald-700 text-white transition" title="Marcar concluído" data-url="{{ route('trabalhos.mark-concluido', $item) }}" data-tecnico-options="{{ json_encode($opts) }}" data-tem-tecnico="{{ $temTecnico ? '1' : '0' }}">
+                                                <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clip-rule="evenodd"/></svg>
+                                            </button>
                                         @endif
                                     </td>
                                 </tr>
@@ -157,6 +200,26 @@
         </div>
     </div>
 
+    {{-- Modal: erro ao alterar estado/trabalho --}}
+    <div id="modal-erro-trabalho" class="fixed inset-0 z-[60] hidden items-center justify-center bg-black/50 p-4" aria-modal="true" role="dialog" aria-labelledby="modal-erro-trabalho-title">
+        <div class="bg-white rounded-xl shadow-xl max-w-md w-full p-6">
+            <div class="flex items-start gap-3">
+                <div class="flex-shrink-0 w-10 h-10 rounded-full bg-amber-100 flex items-center justify-center">
+                    <svg class="w-5 h-5 text-amber-600" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l6.518 11.59C19.021 16.92 18.262 18 17.105 18H2.895c-1.157 0-1.916-1.08-1.156-2.311l6.518-11.59zM11 8a1 1 0 10-2 0v4a1 1 0 102 0V8zm-1 8a1.25 1.25 0 100-2.5A1.25 1.25 0 0010 16z" clip-rule="evenodd"/></svg>
+                </div>
+                <div class="flex-1">
+                    <h3 id="modal-erro-trabalho-title" class="text-sm font-semibold text-gray-900">Aviso</h3>
+                    <p id="modal-erro-trabalho-text" class="mt-1 text-sm text-gray-700"></p>
+                </div>
+            </div>
+            <div class="mt-6 flex justify-end">
+                <button type="button" id="modal-erro-trabalho-ok" class="px-4 py-2 text-sm font-medium text-white bg-epoc-primary rounded-md hover:bg-epoc-primary-hover">
+                    OK
+                </button>
+            </div>
+        </div>
+    </div>
+
     {{-- Modal: atribuir técnico e marcar concluído --}}
     <div id="modal-tecnico" class="fixed inset-0 z-50 hidden items-center justify-center bg-black/50 p-4">
         <div class="bg-white rounded-xl shadow-xl max-w-sm w-full p-6">
@@ -182,9 +245,35 @@
             const cancelBtn = document.getElementById('modal-tecnico-cancel');
             const confirmBtn = document.getElementById('modal-tecnico-confirm');
             let currentUrl = null;
+            let currentEstado = null;
 
-            function openModal(url, options) {
+            const modalErro = document.getElementById('modal-erro-trabalho');
+            const modalErroText = document.getElementById('modal-erro-trabalho-text');
+            const modalErroOk = document.getElementById('modal-erro-trabalho-ok');
+
+            function openErrorModal(message) {
+                if (!modalErro) return;
+                modalErroText.textContent = message || 'Erro ao atualizar.';
+                modalErro.classList.remove('hidden');
+                modalErro.classList.add('flex');
+            }
+
+            function closeErrorModal() {
+                if (!modalErro) return;
+                modalErro.classList.add('hidden');
+                modalErro.classList.remove('flex');
+            }
+
+            if (modalErroOk) {
+                modalErroOk.addEventListener('click', closeErrorModal);
+                modalErro.addEventListener('click', function(e) {
+                    if (e.target === modalErro) closeErrorModal();
+                });
+            }
+
+            function openModal(url, options, estadoForUpdate) {
                 currentUrl = url;
+                currentEstado = (estadoForUpdate !== undefined && estadoForUpdate !== '') ? estadoForUpdate : null;
                 select.innerHTML = '<option value="">— Selecione —</option>';
                 (options || []).forEach(function(opt) {
                     const val = opt.type === 'user' ? 'user-' + opt.id : 'sub-' + opt.id;
@@ -206,9 +295,57 @@
                 if (e.target === modal) closeModal();
             });
 
-            document.querySelectorAll('.trabalho-marcar-concluido').forEach(btn => {
+            // Abrir modal de técnico a partir da lista (alterar técnico)
+            document.querySelectorAll('[data-trabalho-tecnico-url]').forEach(btn => {
                 btn.addEventListener('click', function() {
-                    openModal(this.dataset.url, JSON.parse(this.dataset.tecnicoOptions || '[]'));
+                    const url = this.dataset.trabalhoTecnicoUrl;
+                    const estado = this.dataset.trabalhoTecnicoEstado || '';
+                    const row = this.closest('tr');
+                    let optionsJson = '[]';
+                    if (row) {
+                        const conclBtn = row.querySelector('.trabalho-marcar-concluido');
+                        if (conclBtn) {
+                            optionsJson = conclBtn.dataset.tecnicoOptions || '[]';
+                        }
+                    }
+                    openModal(url, JSON.parse(optionsJson), estado);
+                });
+            });
+
+            document.querySelectorAll('.trabalho-marcar-concluido').forEach(btn => {
+                btn.addEventListener('click', async function() {
+                    const url = this.dataset.url;
+                    const temTecnico = this.dataset.temTecnico === '1';
+                    if (temTecnico) {
+                        this.disabled = true;
+                        try {
+                            const res = await fetch(url, {
+                                method: 'PATCH',
+                                headers: {
+                                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content,
+                                    'Accept': 'application/json',
+                                    'Content-Type': 'application/json'
+                                },
+                                body: JSON.stringify({})
+                            });
+                            const data = await res.json();
+                            if (data.ok) {
+                                if (data.orcamento_por_faturar) {
+                                    document.getElementById('modal-por-faturar').classList.remove('hidden');
+                                    document.getElementById('modal-por-faturar').classList.add('flex');
+                                    return;
+                                }
+                                window.location.reload();
+                            } else {
+                                openErrorModal(data.message || 'Erro ao atualizar.');
+                            }
+                        } catch (e) {
+                            openErrorModal('Erro de ligação ao servidor.');
+                        }
+                        this.disabled = false;
+                    } else {
+                        openModal(url, JSON.parse(this.dataset.tecnicoOptions || '[]'));
+                    }
                 });
             });
 
@@ -217,6 +354,9 @@
                 if (!val || !currentUrl) return;
                 const [type, id] = val.split('-');
                 const body = type === 'user' ? { id_user: id } : { id_subcontratado: id };
+                if (currentEstado) {
+                    body.estado = currentEstado;
+                }
                 confirmBtn.disabled = true;
                 try {
                     const res = await fetch(currentUrl, {
@@ -238,10 +378,10 @@
                         }
                         window.location.reload();
                     } else {
-                        alert(data.message || 'Erro ao atualizar.');
+                        openErrorModal(data.message || 'Erro ao atualizar.');
                     }
                 } catch (e) {
-                    alert('Erro de ligação.');
+                    openErrorModal('Erro de ligação ao servidor.');
                 }
                 confirmBtn.disabled = false;
                 closeModal();
@@ -274,10 +414,14 @@
                             }
                         });
                         const data = await res.json();
-                        if (data.ok) window.location.reload();
-                        else { alert(data.message || 'Erro.'); this.disabled = false; }
+                        if (data.ok) {
+                            window.location.reload();
+                        } else {
+                            openErrorModal(data.message || 'Erro ao atualizar.');
+                            this.disabled = false;
+                        }
                     } catch (e) {
-                        alert('Erro de ligação.');
+                        openErrorModal('Erro de ligação ao servidor.');
                         this.disabled = false;
                     }
                 });

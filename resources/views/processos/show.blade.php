@@ -116,11 +116,22 @@
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Designação</th>
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Gabinete</th>
                                     <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 uppercase">Subcontratado</th>
+                                    @if (auth()->user()?->hasPermission('relatorios.tempo'))
+                                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tempo</th>
+                                    @endif
                                     <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
                                 @foreach ($processo->orcamentos as $orcamento)
+                                    @php
+                                        $tempoOrc = auth()->user()?->hasPermission('relatorios.tempo')
+                                            ? $orcamento->itens->sum(fn ($i) => $i->total_tempo_segundos)
+                                            : 0;
+                                        $tempoOrcFmt = $tempoOrc > 0
+                                            ? (floor($tempoOrc / 3600) > 0 ? (int) floor($tempoOrc / 3600) . ' h ' . (int) floor(($tempoOrc % 3600) / 60) . ' min' : (int) floor($tempoOrc / 60) . ' min')
+                                            : '—';
+                                    @endphp
                                     <tr>
                                         <td class="px-4 py-3 text-sm font-mono text-gray-500">{{ $orcamento->numero ?? $orcamento->id }}</td>
                                         <td class="px-4 py-3 text-sm">
@@ -148,6 +159,9 @@
                                         <td class="px-4 py-3 text-sm text-gray-900">{{ Str::limit($orcamento->designacao, 40) ?? '—' }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600">{{ $orcamento->gabinete?->nome ?? '—' }}</td>
                                         <td class="px-4 py-3 text-sm text-gray-600">{{ $orcamento->subcontratado?->nome ?? '—' }}</td>
+                                        @if (auth()->user()?->hasPermission('relatorios.tempo'))
+                                            <td class="px-4 py-3 text-sm text-right font-mono text-gray-700">{{ $tempoOrcFmt }}</td>
+                                        @endif
                                         <td class="px-4 py-3 text-sm text-right space-x-2">
                                             <a href="{{ route('orcamentos.edit', $orcamento) }}" class="text-epoc-primary hover:text-epoc-primary-hover">{{ in_array($orcamento->status, ['enviado', 'aceite', 'em_execucao', 'por_faturar', 'faturado']) ? 'Ver' : 'Editar' }}</a>
                                             @if (in_array($orcamento->status, ['aceite', 'em_execucao', 'por_faturar', 'faturado']))

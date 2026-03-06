@@ -118,6 +118,9 @@
                                     'trabalhos.view' => 'Ver lista / detalhes',
                                     'trabalhos.edit' => 'Editar / marcar concluído',
                                 ],
+                                'Relatórios' => [
+                                    'relatorios.tempo' => 'Ver tempos de trabalhos (detalhe por orçamento)',
+                                ],
                             ];
                         @endphp
 
