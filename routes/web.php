@@ -46,6 +46,7 @@ Route::middleware('auth')->group(function () {
     Route::patch('trabalhos/{item}/concluido', [TrabalhosController::class, 'markConcluido'])->name('trabalhos.mark-concluido');
     Route::get('gestao', GestaoController::class)->name('gestao.index');
     Route::get('gestao/relatorios', [RelatoriosController::class, 'index'])->name('gestao.relatorios')->middleware('admin');
+    Route::post('gestao/relatorios/custo-hora', [RelatoriosController::class, 'updateCustoHora'])->name('gestao.relatorios.custo_hora')->middleware('admin');
     Route::get('orcamentos/{orcamento}/report', [OrcamentoController::class, 'report'])->name('orcamentos.report');
     Route::get('orcamentos/{orcamento}/gerar-documento/{template}', [TemplateController::class, 'gerarOrcamento'])->name('orcamentos.gerar-documento');
 
