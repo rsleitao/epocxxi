@@ -46,6 +46,28 @@
             <div>
                 <dt class="text-gray-500 font-medium">Estado</dt>
                 <dd class="mt-0.5 text-gray-900">{{ $statusLabels[$orcamento->status] ?? $orcamento->status }}</dd>
+                @if (auth()->user()?->hasPermission('orcamentos.edit') && $orcamento && $orcamento->status !== 'faturado')
+                    @php
+                        // Ações rápidas de estado: usar transições permitidas, excluindo o estado atual
+                        $acoesEstado = collect($selectableStatuses ?? [])
+                            ->filter(fn ($s) => $s !== $orcamento->status)
+                            ->values()
+                            ->all();
+                    @endphp
+                    @if (!empty($acoesEstado))
+                        <div class="mt-2 flex flex-wrap gap-2">
+                            <span class="text-[0.7rem] text-gray-500 mr-1">Alterar para:</span>
+                            @foreach ($acoesEstado as $statusNovo)
+                                <button type="button"
+                                        class="text-[0.7rem] px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-50"
+                                        data-orc-status-url="{{ route('orcamentos.update-status', $orcamento) }}"
+                                        data-orc-status-target="{{ $statusNovo }}">
+                                    {{ $statusLabels[$statusNovo] ?? $statusNovo }}
+                                </button>
+                            @endforeach
+                        </div>
+                    @endif
+                @endif
             </div>
             <div class="sm:col-span-2">
                 <dt class="text-gray-500 font-medium">Designação</dt>

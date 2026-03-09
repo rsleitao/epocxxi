@@ -209,11 +209,13 @@ class TrabalhosController extends Controller
             $item->concluido_em = null;
         }
 
-        // Apenas o técnico atribuído pode iniciar/pausar/retomar (Em execução / Pendente) — excepto em reatribuição (quem tem permissão pode trocar o técnico)
+        // Apenas o técnico interno atribuído (id_user) controla iniciar/pausar/retomar.
+        // Se o trabalho estiver atribuído apenas a subcontratado (id_subcontratado), qualquer utilizador com permissão pode mover o cartão,
+        // porque o subcontratado não acede ao sistema.
         $pediuTecnicoAlgum = ($idUser !== null && $idUser !== '') || ($idSubcontratado !== null && $idSubcontratado !== '');
         $soReatribuicao = ($item->estado === $estado) && $pediuTecnicoAlgum;
         if (in_array($estado, ['em_execucao', 'pendente'], true) && ! $soReatribuicao) {
-            if (! $item->id_user || (int) $item->id_user !== (int) $authId) {
+            if ($item->id_user && (int) $item->id_user !== (int) $authId) {
                 return response()->json([
                     'ok' => false,
                     'message' => 'Apenas o técnico atribuído pode iniciar/pausar este trabalho.',
@@ -333,7 +335,8 @@ class TrabalhosController extends Controller
             return response()->json(['ok' => false, 'message' => 'O subcontratado deve ser o do orçamento.'], 422);
         }
 
-        // Apenas o técnico atribuído (ou quem assume agora) pode concluir
+        // Apenas o técnico interno atribuído (id_user) controla a conclusão.
+        // Se estiver apenas com subcontratado, qualquer utilizador com permissão pode concluir por ele.
         $authId = $request->user()->id;
         if ($item->id_user && (int) $item->id_user !== (int) $authId) {
             return response()->json([

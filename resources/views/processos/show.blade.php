@@ -56,11 +56,16 @@
                             @endif
                         </p>
                     </div>
-                    <div>
-                        <span class="text-gray-500">Valor faturado (neste processo)</span>
-                        <p class="text-gray-900 font-medium">{{ number_format($valorFaturado, 2, ',', ' ') }} €</p>
-                        <p class="text-gray-500 text-xs">Soma dos orçamentos com estado Faturado</p>
-                    </div>
+                    @php
+                        $podeVerFinanceiroProcesso = auth()->user()?->isAdmin() || auth()->user()?->hasPermission('orcamentos.view');
+                    @endphp
+                    @if ($podeVerFinanceiroProcesso)
+                        <div>
+                            <span class="text-gray-500">Valor faturado (neste processo)</span>
+                            <p class="text-gray-900 font-medium">{{ number_format($valorFaturado, 2, ',', ' ') }} €</p>
+                            <p class="text-gray-500 text-xs">Soma dos orçamentos com estado Faturado</p>
+                        </div>
+                    @endif
                 </div>
             </div>
 
@@ -106,6 +111,9 @@
             {{-- Orçamentos do processo --}}
             <div class="bg-white overflow-hidden shadow-sm sm:rounded-lg">
                 <div class="p-4 border-b border-gray-200 font-medium text-gray-700">Orçamentos ({{ $processo->orcamentos->count() }})</div>
+                @php
+                    $podeEditarOrcamentos = auth()->user()?->hasPermission('orcamentos.edit');
+                @endphp
                 <div class="overflow-x-auto">
                     @if ($processo->orcamentos->isNotEmpty())
                         <table class="min-w-full divide-y divide-gray-200">
@@ -119,7 +127,9 @@
                                     @if (auth()->user()?->hasPermission('relatorios.tempo'))
                                         <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Tempo</th>
                                     @endif
-                                    <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+                                    @if ($podeEditarOrcamentos)
+                                        <th class="px-4 py-2 text-right text-xs font-medium text-gray-500 uppercase">Ações</th>
+                                    @endif
                                 </tr>
                             </thead>
                             <tbody class="bg-white divide-y divide-gray-200">
@@ -131,44 +141,104 @@
                                         $tempoOrcFmt = $tempoOrc > 0
                                             ? (floor($tempoOrc / 3600) > 0 ? (int) floor($tempoOrc / 3600) . ' h ' . (int) floor(($tempoOrc % 3600) / 60) . ' min' : (int) floor($tempoOrc / 60) . ' min')
                                             : '—';
+                                        $itensConcluidos = $orcamento->itens->where('estado', 'concluido');
                                     @endphp
-                                    <tr>
-                                        <td class="px-4 py-3 text-sm font-mono text-gray-500">{{ $orcamento->numero ?? $orcamento->id }}</td>
-                                        <td class="px-4 py-3 text-sm">
-                                            @php
-                                                $badges = [
-                                                    'rascunho' => 'bg-gray-100 text-gray-800',
-                                                    'enviado' => 'bg-blue-100 text-blue-800',
-                                                    'aceite' => 'bg-green-100 text-green-800',
-                                                    'recusado' => 'bg-red-100 text-red-800',
-                                                    'cancelado' => 'bg-gray-200 text-gray-700',
-                                                    'em_execucao' => 'bg-epoc-lighter text-epoc-primary',
-                                                    'por_faturar' => 'bg-amber-100 text-amber-800',
-                                                    'faturado' => 'bg-emerald-100 text-emerald-800',
-                                                ];
-                                                $statusLabels = [
-                                                    'rascunho' => 'Rascunho', 'enviado' => 'Enviado', 'aceite' => 'Aceite',
-                                                    'recusado' => 'Recusado', 'cancelado' => 'Cancelado', 'em_execucao' => 'Em execução',
-                                                    'por_faturar' => 'Por faturar', 'faturado' => 'Faturado',
-                                                ];
-                                                $c = $badges[$orcamento->status] ?? 'bg-gray-100 text-gray-800';
-                                                $label = $statusLabels[$orcamento->status] ?? $orcamento->status;
-                                            @endphp
-                                            <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded {{ $c }}">{{ $label }}</span>
-                                        </td>
-                                        <td class="px-4 py-3 text-sm text-gray-900">{{ Str::limit($orcamento->designacao, 40) ?? '—' }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-600">{{ $orcamento->gabinete?->nome ?? '—' }}</td>
-                                        <td class="px-4 py-3 text-sm text-gray-600">{{ $orcamento->subcontratado?->nome ?? '—' }}</td>
-                                        @if (auth()->user()?->hasPermission('relatorios.tempo'))
-                                            <td class="px-4 py-3 text-sm text-right font-mono text-gray-700">{{ $tempoOrcFmt }}</td>
-                                        @endif
-                                        <td class="px-4 py-3 text-sm text-right space-x-2">
-                                            <a href="{{ route('orcamentos.edit', $orcamento) }}" class="text-epoc-primary hover:text-epoc-primary-hover">{{ in_array($orcamento->status, ['enviado', 'aceite', 'em_execucao', 'por_faturar', 'faturado']) ? 'Ver' : 'Editar' }}</a>
-                                            @if (in_array($orcamento->status, ['aceite', 'em_execucao', 'por_faturar', 'faturado']))
-                                                <a href="{{ route('orcamentos.report', $orcamento) }}" target="_blank" class="text-gray-600 hover:text-gray-900">Imprimir</a>
+                                    <tbody x-data="{ mostrarTrabalhos: false }" class="border-b border-gray-100">
+                                        <tr>
+                                            <td class="px-4 py-3 text-sm font-mono text-gray-500">
+                                                {{ $orcamento->numero ?? $orcamento->id }}
+                                            </td>
+                                            <td class="px-4 py-3 text-sm">
+                                                @php
+                                                    $badges = [
+                                                        'rascunho' => 'bg-gray-100 text-gray-800',
+                                                        'enviado' => 'bg-blue-100 text-blue-800',
+                                                        'aceite' => 'bg-green-100 text-green-800',
+                                                        'recusado' => 'bg-red-100 text-red-800',
+                                                        'cancelado' => 'bg-gray-200 text-gray-700',
+                                                        'em_execucao' => 'bg-epoc-lighter text-epoc-primary',
+                                                        'por_faturar' => 'bg-amber-100 text-amber-800',
+                                                        'faturado' => 'bg-emerald-100 text-emerald-800',
+                                                    ];
+                                                    $statusLabels = [
+                                                        'rascunho' => 'Rascunho', 'enviado' => 'Enviado', 'aceite' => 'Aceite',
+                                                        'recusado' => 'Recusado', 'cancelado' => 'Cancelado', 'em_execucao' => 'Em execução',
+                                                        'por_faturar' => 'Por faturar', 'faturado' => 'Faturado',
+                                                    ];
+                                                    $c = $badges[$orcamento->status] ?? 'bg-gray-100 text-gray-800';
+                                                    $label = $statusLabels[$orcamento->status] ?? $orcamento->status;
+                                                @endphp
+                                                <span class="inline-flex px-2 py-0.5 text-xs font-medium rounded {{ $c }}">{{ $label }}</span>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-gray-900">
+                                                <div class="flex items-center justify-between gap-2">
+                                                    <span>{{ Str::limit($orcamento->designacao, 40) ?? '—' }}</span>
+                                                    @if ($itensConcluidos->count() > 0)
+                                                        <button type="button"
+                                                                class="text-xs text-epoc-primary hover:text-epoc-primary-hover whitespace-nowrap"
+                                                                @click="mostrarTrabalhos = !mostrarTrabalhos">
+                                                            <span x-show="!mostrarTrabalhos">Ver trabalhos concluídos</span>
+                                                            <span x-show="mostrarTrabalhos">Esconder trabalhos</span>
+                                                        </button>
+                                                    @endif
+                                                </div>
+                                            </td>
+                                            <td class="px-4 py-3 text-sm text-gray-600">{{ $orcamento->gabinete?->nome ?? '—' }}</td>
+                                            <td class="px-4 py-3 text-sm text-gray-600">{{ $orcamento->subcontratado?->nome ?? '—' }}</td>
+                                            @if (auth()->user()?->hasPermission('relatorios.tempo'))
+                                                <td class="px-4 py-3 text-sm text-right font-mono text-gray-700">{{ $tempoOrcFmt }}</td>
                                             @endif
-                                        </td>
-                                    </tr>
+                                            @if ($podeEditarOrcamentos)
+                                                <td class="px-4 py-3 text-sm text-right space-x-2">
+                                                    <a href="{{ route('orcamentos.edit', $orcamento) }}" class="text-epoc-primary hover:text-epoc-primary-hover">{{ in_array($orcamento->status, ['enviado', 'aceite', 'em_execucao', 'por_faturar', 'faturado']) ? 'Ver' : 'Editar' }}</a>
+                                                    @if (in_array($orcamento->status, ['aceite', 'em_execucao', 'por_faturar', 'faturado']))
+                                                        <a href="{{ route('orcamentos.report', $orcamento) }}" target="_blank" class="text-gray-600 hover:text-gray-900">Imprimir</a>
+                                                    @endif
+                                                </td>
+                                            @endif
+                                        </tr>
+                                        @if ($itensConcluidos->count() > 0)
+                                            <tr x-show="mostrarTrabalhos">
+                                                <td colspan="{{ 5 + (auth()->user()?->hasPermission('relatorios.tempo') ? 1 : 0) + ($podeEditarOrcamentos ? 1 : 0) }}" class="px-4 pb-4 pt-1 text-sm bg-gray-50">
+                                                    <div class="mt-1 border border-gray-200 rounded-md overflow-hidden">
+                                                        <table class="min-w-full text-xs">
+                                                            <thead class="bg-gray-100">
+                                                                <tr>
+                                                                    <th class="px-3 py-1 text-left font-medium text-gray-600">Serviço / tipo</th>
+                                                                    <th class="px-3 py-1 text-left font-medium text-gray-600">Técnico</th>
+                                                                    <th class="px-3 py-1 text-left font-medium text-gray-600">Concluído em</th>
+                                                                    @if (auth()->user()?->hasPermission('relatorios.tempo'))
+                                                                        <th class="px-3 py-1 text-right font-medium text-gray-600">Tempo</th>
+                                                                    @endif
+                                                                </tr>
+                                                            </thead>
+                                                            <tbody class="bg-white divide-y divide-gray-100">
+                                                                @foreach ($itensConcluidos as $item)
+                                                                    <tr>
+                                                                        <td class="px-3 py-1">
+                                                                            <div class="font-medium text-gray-900">{{ $item->servico?->nome ?? $item->descricao ?? '—' }}</div>
+                                                                            <div class="text-[0.7rem] text-gray-500">{{ $item->servico?->tipo_trabalho ?? '—' }}</div>
+                                                                        </td>
+                                                                        <td class="px-3 py-1 text-gray-800">
+                                                                            {{ $item->tecnico_nome ?? '—' }}
+                                                                        </td>
+                                                                        <td class="px-3 py-1 text-gray-800">
+                                                                            {{ $item->concluido_em?->format('d/m/Y H:i') ?? '—' }}
+                                                                        </td>
+                                                                        @if (auth()->user()?->hasPermission('relatorios.tempo'))
+                                                                            <td class="px-3 py-1 text-right font-mono text-gray-700">
+                                                                                {{ $item->total_tempo_formatado ?? $item->total_tempo_segundos . ' s' }}
+                                                                            </td>
+                                                                        @endif
+                                                                    </tr>
+                                                                @endforeach
+                                                            </tbody>
+                                                        </table>
+                                                    </div>
+                                                </td>
+                                            </tr>
+                                        @endif
+                                    </tbody>
                                 @endforeach
                             </tbody>
                         </table>

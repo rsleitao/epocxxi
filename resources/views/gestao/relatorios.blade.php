@@ -90,14 +90,14 @@
                     <p class="mt-0.5 text-sm text-gray-500">No período e âmbito selecionados</p>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-5">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Tempo total</p>
-                    <p class="mt-1 text-2xl font-bold text-epoc-primary">{{ $totalTempoFormatado }}</p>
-                    <p class="mt-0.5 text-sm text-gray-500">Soma do tempo registado</p>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Faturação total</p>
+                    <p class="mt-1 text-2xl font-bold text-epoc-primary">{{ number_format($totalFaturacaoTotal, 2, ',', ' ') }} €</p>
+                    <p class="mt-0.5 text-sm text-gray-500">Faturado (período) + por faturar atual</p>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-5">
-                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Faturação</p>
-                    <p class="mt-1 text-2xl font-bold text-green-600">{{ number_format($totalFaturado, 2, ',', ' ') }} €</p>
-                    <p class="mt-0.5 text-sm text-gray-500">Soma preço × quantidade (período)</p>
+                    <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Já faturado</p>
+                    <p class="mt-1 text-2xl font-bold text-green-600">{{ number_format($totalJaFaturado, 2, ',', ' ') }} €</p>
+                    <p class="mt-0.5 text-sm text-gray-500">Orçamentos com estado «Faturado» no período</p>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-5">
                     <p class="text-xs font-medium text-gray-500 uppercase tracking-wide">Por faturar</p>
@@ -124,7 +124,7 @@
                     </div>
                 </div>
                 <div class="bg-white rounded-xl shadow-sm border border-gray-200/80 p-4">
-                    <h3 class="text-sm font-semibold text-gray-800 mb-3">Evolução mensal (faturação)</h3>
+                    <h3 class="text-sm font-semibold text-gray-800 mb-3">Evolução mensal (faturado vs previsão)</h3>
                     <div class="h-64">
                         <canvas id="chart-mensal" height="256"></canvas>
                     </div>
@@ -359,19 +359,30 @@
                     type: 'line',
                     data: {
                         labels: porMes.map(function(r) { return r.label; }),
-                        datasets: [{
-                            label: 'Faturação (€)',
-                            data: porMes.map(function(r) { return r.faturado != null ? r.faturado : 0; }),
-                            borderColor: 'rgb(34, 197, 94)',
-                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
-                            fill: true,
-                            tension: 0.2
-                        }]
+                        datasets: [
+                            {
+                                label: 'Já faturado (€)',
+                                data: porMes.map(function(r) { return r.faturado_ja != null ? r.faturado_ja : 0; }),
+                                borderColor: 'rgb(34, 197, 94)',
+                                backgroundColor: 'rgba(34, 197, 94, 0.15)',
+                                fill: true,
+                                tension: 0.2
+                            },
+                            {
+                                label: 'Previsão total (€)',
+                                data: porMes.map(function(r) { return r.faturado_total != null ? r.faturado_total : 0; }),
+                                borderColor: 'rgb(59, 130, 246)',
+                                backgroundColor: 'rgba(59, 130, 246, 0.0)',
+                                borderDash: [6, 4],
+                                fill: false,
+                                tension: 0.2
+                            }
+                        ]
                     },
                     options: {
                         responsive: true,
                         maintainAspectRatio: false,
-                        plugins: { legend: { display: false } },
+                        plugins: { legend: { display: true } },
                         scales: {
                             y: { beginAtZero: true, ticks: { callback: function(v) { return v + ' €'; } } }
                         }

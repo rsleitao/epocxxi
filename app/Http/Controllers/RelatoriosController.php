@@ -49,6 +49,18 @@ class RelatoriosController extends Controller
         $margem = $totalFaturado - $totalCustoTempo;
         $compensa = $totalCustoTempo <= 0 || $totalFaturado >= $totalCustoTempo;
 
+        // Faturação já emitida (orçamentos com estado Faturado) no período selecionado
+        $orcFaturados = Orcamento::where('status', 'faturado');
+        if ($dataInicio) {
+            $orcFaturados->whereDate('data_faturado', '>=', $dataInicio);
+        }
+        if ($dataFim) {
+            $orcFaturados->whereDate('data_faturado', '<=', $dataFim);
+        }
+        // Campo calculado via accessor getTotalComIvaAttribute(), não existe na BD:
+        // temos de somar em memória.
+        $totalJaFaturado = $orcFaturados->get()->sum(fn (Orcamento $o) => $o->total_com_iva);
+
         $porGabinete = $itens->groupBy(fn ($i) => $i->orcamento?->id_gabinete ?? 0)->map(function ($group, $idGab) use ($custoHora) {
             $primeiro = $group->first();
             $faturado = $group->sum(fn ($i) => $this->precoCobradoItem($i));
@@ -144,12 +156,17 @@ class RelatoriosController extends Controller
         unset($row);
 
         $porMes = $itens->groupBy(fn ($i) => $i->concluido_em?->format('Y-m'))->map(function ($group, $anoMes) {
-            $faturado = $group->sum(fn ($i) => $this->precoCobradoItem($i));
+            $faturadoTotal = $group->sum(fn ($i) => $this->precoCobradoItem($i));
+            $faturadoJa = $group
+                ->filter(fn ($i) => $i->orcamento?->status === 'faturado')
+                ->sum(fn ($i) => $this->precoCobradoItem($i));
+
             return [
                 'ano_mes' => $anoMes,
                 'label' => \Carbon\Carbon::createFromFormat('Y-m', $anoMes)->format('m/Y'),
                 'count' => $group->count(),
-                'faturado' => $faturado,
+                'faturado_ja' => $faturadoJa,
+                'faturado_total' => $faturadoTotal,
                 'tempo_segundos' => $group->sum(fn ($i) => $i->total_tempo_segundos),
             ];
         })->sortKeys()->values()->all();
@@ -157,6 +174,8 @@ class RelatoriosController extends Controller
         $totalPorFaturar = Orcamento::where('status', 'por_faturar')->with('itens')->get()->sum(function ($o) {
             return $o->itens->sum(fn ($i) => (float) $i->preco_base * (float) ($i->quantidade ?? 1));
         });
+
+        $totalFaturacaoTotal = $totalJaFaturado + $totalPorFaturar;
 
         $gabinetes = Gabinete::orderBy('nome')->get();
         $users = User::orderBy('name')->get();
@@ -166,6 +185,8 @@ class RelatoriosController extends Controller
             'totalTempoFormatado' => $totalTempoFormatado,
             'totalTempoSegundos' => $totalTempoSegundos,
             'totalFaturado' => $totalFaturado,
+            'totalJaFaturado' => $totalJaFaturado,
+            'totalFaturacaoTotal' => $totalFaturacaoTotal,
             'totalCustoTempo' => $totalCustoTempo,
             'totalPorFaturar' => $totalPorFaturar,
             'margem' => $margem,

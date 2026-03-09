@@ -207,7 +207,7 @@ class OrcamentoController extends Controller
     public function update(Request $request, Orcamento $orcamento): RedirectResponse
     {
         abort_unless($request->user()->hasPermission('orcamentos.edit'), 403);
-        $apenasConsulta = in_array($orcamento->status, ['enviado', 'aceite', 'em_execucao', 'por_faturar', 'faturado'], true);
+        $apenasConsulta = in_array($orcamento->status, ['enviado', 'aceite', 'em_execucao', 'por_faturar', 'faturado', 'recusado'], true);
         if ($apenasConsulta) {
             return redirect()->route('orcamentos.edit', $orcamento)
                 ->with('warning', 'Orçamento enviado ou em fase posterior não pode ser editado. Use apenas consulta ou impressão.');

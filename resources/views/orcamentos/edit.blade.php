@@ -1,5 +1,5 @@
 @php
-    $readonly = in_array($orcamento->status, ['enviado', 'aceite', 'em_execucao', 'por_faturar', 'faturado']);
+    $readonly = in_array($orcamento->status, ['enviado', 'aceite', 'em_execucao', 'por_faturar', 'faturado', 'recusado']);
 @endphp
 <x-app-layout>
     <x-slot name="header">
@@ -146,3 +146,64 @@
         </div>
     </div>
 </x-app-layout>
+
+@if (auth()->user()?->hasPermission('orcamentos.edit'))
+    <script>
+        (function () {
+            const tokenMeta = document.querySelector('meta[name="csrf-token"]');
+            const csrf = tokenMeta ? tokenMeta.content : null;
+
+            document.querySelectorAll('[data-orc-status-url]').forEach(function (btn) {
+                btn.addEventListener('click', async function () {
+                    if (!csrf) {
+                        alert('Token CSRF em falta.');
+                        return;
+                    }
+                    const url = this.getAttribute('data-orc-status-url');
+                    const status = this.getAttribute('data-orc-status-target');
+                    if (!url || !status) return;
+
+                    if (status === 'cancelado' && !confirm('Cancelar este orçamento? Pode escolher manter ou apagar o processo associado.')) {
+                        return;
+                    }
+                    if (status === 'faturado' && !confirm('Marcar este orçamento como faturado?')) {
+                        return;
+                    }
+
+                    this.disabled = true;
+
+                    const body = { status: status };
+
+                    try {
+                        const res = await fetch(url, {
+                            method: 'PATCH',
+                            headers: {
+                                'X-CSRF-TOKEN': csrf,
+                                'Accept': 'application/json',
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify(body)
+                        });
+                        const data = await res.json();
+
+                        if (data && data.require_cancel_choice) {
+                            alert('Para cancelar um orçamento com processo associado, use a ação na vista Kanban onde pode escolher se mantém ou apaga o processo.');
+                            this.disabled = false;
+                            return;
+                        }
+
+                        if (data && data.ok) {
+                            window.location.reload();
+                        } else {
+                            alert((data && data.message) || 'Não foi possível atualizar o estado.');
+                            this.disabled = false;
+                        }
+                    } catch (e) {
+                        alert('Erro de ligação ao servidor ao atualizar o estado.');
+                        this.disabled = false;
+                    }
+                });
+            });
+        })();
+    </script>
+@endif
