@@ -41,8 +41,16 @@ class TrabalhosController extends Controller
             ]);
         }
 
-        $query->orderByRaw("FIELD(estado, 'em_espera', 'em_execucao', 'pendente', 'concluido')")
-            ->orderBy('id');
+        // Ordenação custom por estado (compatível com MySQL e SQLite)
+        $caseOrder = "CASE
+            WHEN estado = 'em_espera' THEN 1
+            WHEN estado = 'em_execucao' THEN 2
+            WHEN estado = 'pendente' THEN 3
+            WHEN estado = 'concluido' THEN 4
+            ELSE 5
+        END";
+
+        $query->orderByRaw($caseOrder)->orderBy('id');
 
         if ($request->filled('estado')) {
             $estado = $request->input('estado');
